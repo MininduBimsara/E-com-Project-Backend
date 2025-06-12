@@ -1,8 +1,20 @@
 const express = require("express");
-const { registerUser, loginUser } = require("../controllers/userController");
 const router = express.Router();
+const authController = require("../controllers/authController");
+const { protect } = require("../middlewares/authMiddleware");
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+// File upload middleware (optional if profileImage used)
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
+
+router.post(
+  "/register",
+  upload.single("profileImage"),
+  authController.register
+);
+router.post("/login", authController.login);
+router.post("/logout", authController.logout);
+router.get("/verify", protect, authController.verifyToken);
+router.put("/change-password", protect, authController.changePassword);
 
 module.exports = router;
