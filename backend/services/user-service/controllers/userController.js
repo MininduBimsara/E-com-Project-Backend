@@ -1,49 +1,91 @@
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
+const authService = require("../../Services/Common/authService");
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
-};
-
-const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+// Registration handler
+const register = async (req, res) => {
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+    const profileImageData = req.file ? req.file.filename : null;
 
-    const user = await User.create({ name, email, password });
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
+    const result = await authService.registerUser(req.body, profileImageData);
+
+    // Set cookie with JWT token
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+
+    res.status(201).json({
+      message: "User registered successfully",
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    res.status(error.message === "User already exists" ? 400 : 500).json({
+      message: error.message,
+    });
   }
 };
 
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+// Login handler
+const login = async (req, res) => {
   try {
-    const user = await User.findOne({ email });
-    if (user && (await user.matchPassword(password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid email or password" });
-    }
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const { email, password } = req.body;
+
+    const result = await authService.loginUser(email, password);
+
+    // Set cookie with JWT token
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    res.status(200).json({
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    res.status(error.message === "Invalid credentials" ? 400 : 500).json({
+      message: error.message,
+    });
   }
 };
 
-module.exports = { registerUser, loginUser };
+// Verify token handler
+const verifyToken = async (req, res) => {
+  try {
+    const userData = authService.getUserData(req.user);
+
+    res.status(200).json({
+      user: userData,
+    });
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
+};
+
+// Logout handler
+const logout = (req, res) => {
+  // Clear the cookie
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
+
+  // Send a successful response
+  res.status(200).json({ success: true, message: "Logged out successfully" });
+};
+
+
+module.exports = {
+  register,
+  login,
+  verifyToken,
+  logout,
+};
