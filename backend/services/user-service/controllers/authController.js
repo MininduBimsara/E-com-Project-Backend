@@ -1,4 +1,4 @@
-const authService = require("../../Services/Common/authService");
+const authService = require("../Services/authService");
 
 const isProduction = process.env.NODE_ENV === "production";
 const cookieOptions = {
