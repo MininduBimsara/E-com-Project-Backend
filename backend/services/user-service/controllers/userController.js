@@ -17,7 +17,6 @@ exports.getCurrentUser = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: "User not authenticated" });
     }
-
     // Return the user object (already excludes password because of the middleware)
     res.status(200).json(req.user);
   } catch (error) {
