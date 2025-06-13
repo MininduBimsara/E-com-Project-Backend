@@ -15,8 +15,12 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-app.use("/api/users", userRoutes);
+// app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+
+app.get("/", (req, res) => {
+  res.send("User-service Backend is running 🚀");
+});
 
 mongoose
   .connect(process.env.MONGO_URI, {
