@@ -5,7 +5,7 @@ const {
   getCurrentUser,
   deleteUserProfile,
 } = require("../controllers/userController");
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middlewares/authMiddleware");
 const multer = require("multer");
 const path = require("path");
 

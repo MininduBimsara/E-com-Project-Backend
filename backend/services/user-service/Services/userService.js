@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const UserRepository = require("../../Repository/UserRepository");
+const UserRepository = require("../Repository/UserRepository");
 
 /**
  * Get a user profile by ID
