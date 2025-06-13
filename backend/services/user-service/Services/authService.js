@@ -7,7 +7,8 @@ const AuthRepository = require("../Repository/AuthRepository");
 const registerUser = async (userData, profileImageFilename = null) => {
   const { username, email, password, role } = userData;
 
-  if (!username || !email || !password || !role) {
+  // add role validation if needed || !role
+  if (!username || !email || !password) {
     throw new Error("All fields are required");
   }
 

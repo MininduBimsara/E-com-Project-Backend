@@ -14,7 +14,7 @@ const userSchema = new Schema({
   },
   password: {
     type: String,
-    // required: true,
+    required: true,
   },
   role: {
     type: String,
@@ -23,6 +23,7 @@ const userSchema = new Schema({
   },
   profileImage: {
     type: String,
+    // required: true,
   },
   status: {
     type: String,

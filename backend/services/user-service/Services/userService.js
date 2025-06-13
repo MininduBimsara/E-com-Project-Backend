@@ -1,148 +1,135 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-
-// Import repositories
 const UserRepository = require("../../Repository/UserRepository");
-const AuthRepository = require("../../Repository/AuthRepository");
 
 /**
- * Register a new user
- * @param {Object} userData - User registration data
- * @param {String} profileImageFilename - Uploaded profile image filename (optional)
- * @returns {Object} User data and JWT token
+ * Get a user profile by ID
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - User profile
  */
-const registerUser = async (userData, profileImageFilename = null) => {
-  const { username, email, password, role } = userData;
-
-  if (!username || !email || !password || !role) {
-    throw new Error("All fields are required");
-  }
-
-  // Check if user already exists using repository
-  const existingUser = await UserRepository.findByEmail(email);
-  if (existingUser) {
-    throw new Error("User already exists");
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Create new user using repository
-  const user = await UserRepository.create({
-    username,
-    email,
-    password: hashedPassword,
-    role,
-    profileImage: profileImageFilename,
-  });
-
-  // Create organizer profile if role is organizer
-  if (role === "organizer") {
-    await createOrganizerProfile(user._id);
-  }
-
-  // Create admin profile if role is admin
-  if (role === "admin") {
-    await createAdminProfile(user._id);
-  }
-
-  // Generate JWT token
-  const token = generateToken(user._id, user.role);
-
-  return {
-    token,
-    user: formatUserResponse(user, profileImageFilename),
-  };
-};
-
-/**
- * Authenticate a user
- * @param {String} email - User email
- * @param {String} password - User password
- * @returns {Object} User data and JWT token
- */
-const loginUser = async (email, password) => {
-  if (!email || !password) {
-    throw new Error("Email and password are required");
-  }
-
-  // Find user in database
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    throw new Error("Invalid email or password");
-  }
-
-  // First, try to authenticate with database password
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-
-  if (isPasswordValid) {
-    // Database authentication successful
-    return generateUserResponse(user);
-  }
-};
-
-/**
- * Change user password
- * @param {String} userId - User ID
- * @param {String} currentPassword - Current password
- * @param {String} newPassword - New password
- * @returns {Object} Success message
- */
-const changePassword = async (userId, currentPassword, newPassword) => {
+const getUserProfile = async (userId) => {
   const user = await UserRepository.findById(userId);
   if (!user) {
     throw new Error("User not found");
   }
 
-  // Verify current password
-  const isMatch = await bcrypt.compare(currentPassword, user.password);
-  if (!isMatch) {
-    throw new Error("Current password is incorrect");
+  // Remove password from response
+  const { password, ...userProfile } = user.toObject();
+  return userProfile;
+};
+
+/**
+ * Update a user profile
+ * @param {string} userId - User ID
+ * @param {Object} updateData - Data to update
+ * @param {File} profileImage - Optional profile image file
+ * @returns {Promise<Object>} - Updated user profile
+ */
+const updateUserProfile = async (userId, updateData, profileImage = null) => {
+  const updatedData = {};
+
+  // Include profileImage if uploaded
+  if (profileImage) {
+    updatedData.profileImage = profileImage.filename;
   }
 
-  // Hash new password
-  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  // Only add fields that are provided in the request
+  const allowedFields = [
+    "username", // ← Use username instead
+    "email",
+    "phone",
+    "address",
+    "city",
+  ];
 
-  // Update password using AuthRepository instead of UserRepository
-  await AuthRepository.updatePassword(userId, hashedNewPassword);
-
-  return { message: "Password changed successfully" };
-};
-
-/**
- * Generate JWT token
- * @param {String} userId - User ID
- * @param {String} role - User role
- * @returns {String} JWT token
- */
-const generateToken = (userId, role) => {
-  return jwt.sign({ id: userId, role: role }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) {
+      updatedData[field] = updateData[field];
+    }
   });
-};
 
+  // Handle username created from firstName and lastName
+  // if (updateData.username) {
+  //   updatedData.name = updateData.username;
+  // }
 
-/**
- * Update user profile
- * @param {String} userId - User ID
- * @param {Object} updateData - Data to update
- * @returns {Object} Updated user data
- */
-const updateUserProfile = async (userId, updateData) => {
-  const updatedUser = await UserRepository.updateById(userId, updateData);
+  // Only handle password if provided
+  if (updateData.password) {
+    const salt = await bcrypt.genSalt(10);
+    updatedData.password = await bcrypt.hash(updateData.password, salt);
+  }
+
+  // Only update if there are fields to update
+  if (Object.keys(updatedData).length === 0) {
+    throw new Error("No fields to update");
+  }
+
+  const updatedUser = await UserRepository.updateById(userId, updatedData);
+
   if (!updatedUser) {
     throw new Error("User not found");
   }
 
-  return formatUserResponse(updatedUser);
+  // Remove password from response
+  const { password, ...userProfile } = updatedUser.toObject();
+  return userProfile;
 };
 
+/**
+ * Delete a user profile
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - Success message
+ */
+const deleteUserProfile = async (userId) => {
+  const deletedUser = await UserRepository.deleteById(userId);
+  if (!deletedUser) {
+    throw new Error("User not found");
+  }
+  return { message: "User deleted successfully" };
+};
+
+/**
+ * Update a user's status
+ * @param {string} userId - User ID
+ * @param {string} status - New status ('active' or 'banned')
+ * @returns {Promise<Object>} - Updated user and success message
+ */
+const updateUserStatus = async (userId, status) => {
+  // Ensure the status is either "active" or "banned"
+  if (!["active", "banned"].includes(status)) {
+    throw new Error("Invalid status value");
+  }
+
+  const user = await UserRepository.updateById(userId, { status });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return { message: `User status updated to ${status}`, user };
+};
+
+/**
+ * Get all regular users
+ * @returns {Promise<Array>} - List of regular users
+ */
+const getRegularUsers = async () => {
+  return await UserRepository.findByRole("user");
+};
+
+/**
+ * Get all non-admin users
+ * @returns {Promise<Array>} - List of non-admin users
+ */
+const getAllNonAdminUsers = async () => {
+  return await UserRepository.findAll({ role: { $ne: "admin" } });
+};
+
+
 module.exports = {
-  registerUser,
-  loginUser,
-  getUserData,
-  generateToken,
-  formatUserResponse,
+  getUserProfile,
   updateUserProfile,
-  changePassword,
+  deleteUserProfile,
+  updateUserStatus,
+  getRegularUsers,
+  getAllNonAdminUsers,
 };
