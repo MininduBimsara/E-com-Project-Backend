@@ -14,7 +14,7 @@ const app = express();
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   })
 );
@@ -47,60 +47,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Root endpoint
-app.get("/", (req, res) => {
-  res.json({
-    message: "Product Service API",
-    version: "1.0.0",
-    endpoints: {
-      health: "/health",
-      products: "/api/products",
-    },
-  });
-});
 
-// Global error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Global error handler:", err);
-
-  // Mongoose validation error
-  if (err.name === "ValidationError") {
-    const errors = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({
-      message: "Validation Error",
-      errors,
-    });
-  }
-
-  // Mongoose cast error (invalid ObjectId)
-  if (err.name === "CastError") {
-    return res.status(400).json({
-      message: "Invalid ID format",
-    });
-  }
-
-  // Duplicate key error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    return res.status(400).json({
-      message: `${field} already exists`,
-    });
-  }
-
-  // Default error
-  res.status(500).json({
-    message: "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err.message : undefined,
-  });
-});
-
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    message: "Route not found",
-    path: req.originalUrl,
-  });
-});
 
 // MongoDB connection
 mongoose

@@ -1,4 +1,4 @@
-const productService = require("../services/productService");
+const productService = require("../Services/productService");
 
 /**
  * Create a new product (requires authentication)
@@ -274,37 +274,6 @@ const updateProductStock = async (req, res) => {
   }
 };
 
-/**
- * Get products with low stock (requires authentication)
- */
-const getLowStockProducts = async (req, res) => {
-  try {
-    const threshold = parseInt(req.query.threshold) || 10;
-    const products = await productService.getLowStockProducts(threshold);
-    res.status(200).json(products);
-  } catch (error) {
-    res.status(500).json({
-      message: "Server Error",
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Get product statistics (requires authentication)
- */
-const getProductStats = async (req, res) => {
-  try {
-    const stats = await productService.getProductStats(req.user.id);
-    res.status(200).json(stats);
-  } catch (error) {
-    res.status(500).json({
-      message: "Server Error",
-      error: error.message,
-    });
-  }
-};
-
 module.exports = {
   createProduct,
   getPublicProducts,
@@ -317,6 +286,4 @@ module.exports = {
   getFeaturedProducts,
   getUserProducts,
   updateProductStock,
-  getLowStockProducts,
-  getProductStats,
 };

@@ -170,15 +170,6 @@ class ProductRepository {
   }
 
   /**
-   * Get products with low stock
-   * @param {Number} threshold - Stock threshold (default: 10)
-   * @returns {Array} Array of products with low stock
-   */
-  async findLowStock(threshold = 10) {
-    return await this.findAll({ stock: { $lte: threshold } });
-  }
-
-  /**
    * Get featured products (high eco rating)
    * @param {Number} limit - Number of products to return
    * @returns {Array} Array of featured products
