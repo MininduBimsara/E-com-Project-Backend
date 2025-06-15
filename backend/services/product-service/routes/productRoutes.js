@@ -45,6 +45,8 @@ const upload = multer({
   fileFilter,
 });
 
+const uploadAny = upload.any();
+
 // ---------- ROUTES ---------- //
 
 // Health/Test Route
@@ -67,7 +69,14 @@ router.get("/my", verifyAuth, productController.getUserProducts);
 router.post(
   "/",
   verifyAuth,
-  upload.single("productImage"),
+  uploadAny,
+  (req, res, next) => {
+    // Extract the file regardless of field name
+    const uploadedFile =
+      req.files && req.files.length > 0 ? req.files[0] : null;
+    req.file = uploadedFile; // Normalize to req.file for controller
+    next();
+  },
   productController.createProduct
 );
 
