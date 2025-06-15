@@ -8,7 +8,14 @@ const axios = require("axios");
  */
 const verifyAuth = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
+    let token;
+
+    // Check for token in cookies first, then fallback to Authorization header
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else {
+      token = req.header("Authorization")?.replace("Bearer ", "");
+    }
 
     if (!token) {
       return res.status(401).json({
@@ -18,7 +25,7 @@ const verifyAuth = async (req, res, next) => {
 
     // Call the user service to verify the token
     const userServiceUrl =
-      process.env.USER_SERVICE_URL || "http://localhost:5000";
+      process.env.USER_SERVICE_URL || "http://localhost:4000";
     const response = await axios.get(`${userServiceUrl}/api/auth/verify`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -58,7 +65,14 @@ const verifyAuth = async (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
+    let token;
+
+    // Check for token in cookies first, then fallback to Authorization header
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else {
+      token = req.header("Authorization")?.replace("Bearer ", "");
+    }
 
     if (!token) {
       req.user = null;
@@ -67,7 +81,7 @@ const optionalAuth = async (req, res, next) => {
 
     // Call the user service to verify the token
     const userServiceUrl =
-      process.env.USER_SERVICE_URL || "http://localhost:5000";
+      process.env.USER_SERVICE_URL || "http://localhost:4000";
     const response = await axios.get(`${userServiceUrl}/api/auth/verify`, {
       headers: {
         Authorization: `Bearer ${token}`,

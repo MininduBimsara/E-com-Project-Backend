@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const cookieParser = require("cookie-parser"); // Add this import
 const path = require("path");
 const fs = require("fs");
 
@@ -11,13 +12,18 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration
+// CORS configuration - MUST come before other middleware
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
+    credentials: true, // Essential for cookies to work
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
 );
+
+// Cookie parser middleware - MUST come before routes that need cookies
+app.use(cookieParser());
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
@@ -35,6 +41,14 @@ app.use(
   express.static(path.join(__dirname, "public/product-images"))
 );
 
+// Debug middleware to log incoming requests (remove in production)
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log("Cookies:", req.cookies);
+  console.log("Auth Header:", req.headers.authorization);
+  next();
+});
+
 // API routes
 app.use("/api/products", productRoutes);
 
@@ -44,10 +58,9 @@ app.get("/health", (req, res) => {
     status: "OK",
     service: "Product Service",
     timestamp: new Date().toISOString(),
+    cookies_enabled: !!req.cookies,
   });
 });
-
-
 
 // MongoDB connection
 mongoose
@@ -73,6 +86,7 @@ mongoose.connection.on("reconnected", () => {
   console.log("✅ MongoDB reconnected");
 });
 
+
 // Graceful shutdown
 process.on("SIGINT", async () => {
   console.log("\n⏹️  Shutting down gracefully...");
@@ -86,6 +100,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Product Service running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`📁 Static files served from: ${uploadsDir}`);
+  console.log(`🍪 Cookie parser enabled`);
 });
 
 module.exports = app;
