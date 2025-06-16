@@ -12,6 +12,9 @@ dotenv.config();
 
 const app = express();
 
+
+
+
 // CORS configuration - MUST come before other middleware
 app.use(
   cors({
@@ -22,18 +25,40 @@ app.use(
   })
 );
 
+
+const corsOptions = {
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    // Add your production URLs here
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Origin",
+    "X-Requested-With",
+    "Accept",
+  ],
+};
+
+app.use(cors(corsOptions));
+
 // Cookie parser middleware - MUST come before routes that need cookies
 app.use(cookieParser());
 
 // Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, "public/product-images");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
 
 // Serve static files for product images
 app.use(
@@ -52,16 +77,6 @@ app.use((req, res, next) => {
 // API routes
 app.use("/api/products", productRoutes);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "OK",
-    service: "Product Service",
-    timestamp: new Date().toISOString(),
-    cookies_enabled: !!req.cookies,
-  });
-});
-
 // MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -69,38 +84,18 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
-    console.log("✅ MongoDB connected - Product Service");
-    console.log(`📦 Database: ${mongoose.connection.db.databaseName}`);
+    console.log("✅ MongoDB connected successfully");
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
 
-// MongoDB connection event listeners
-mongoose.connection.on("disconnected", () => {
-  console.log("⚠️  MongoDB disconnected");
-});
-
-mongoose.connection.on("reconnected", () => {
-  console.log("✅ MongoDB reconnected");
-});
-
-
-// Graceful shutdown
-process.on("SIGINT", async () => {
-  console.log("\n⏹️  Shutting down gracefully...");
-  await mongoose.connection.close();
-  console.log("✅ MongoDB connection closed");
-  process.exit(0);
-});
 
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
   console.log(`🚀 Product Service running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`📁 Static files served from: ${uploadsDir}`);
-  console.log(`🍪 Cookie parser enabled`);
+  console.log(`🌐 API URL: http://localhost:${PORT}/api/products`);
 });
 
 module.exports = app;
