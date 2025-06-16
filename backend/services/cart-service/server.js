@@ -20,6 +20,6 @@ mongoose
   })
   .then(() => {
     console.log("Connected to MongoDB");
-    app.listen(5002, () => console.log("Cart Service running on port 5002"));
+    app.listen(4002, () => console.log("Cart Service running on port 4002"));
   })
   .catch((err) => console.error("MongoDB connection failed:", err));
