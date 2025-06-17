@@ -7,10 +7,10 @@ router.use(express.json());
 
 // Health check
 router.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "OK", 
+  res.status(200).json({
+    status: "OK",
     service: "Simple Cart Service",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -96,7 +96,7 @@ router.use("*", (req, res) => {
     message: `Cart API route not found: ${req.method} ${req.originalUrl}`,
     availableEndpoints: [
       "GET /:userId - Get cart",
-      "GET /:userId/summary - Get cart summary", 
+      "GET /:userId/summary - Get cart summary",
       "GET /:userId/count - Get items count",
       "POST /:userId/add - Add item",
       "PUT /:userId/item/:productId - Update item",
@@ -104,20 +104,40 @@ router.use("*", (req, res) => {
       "DELETE /:userId/clear - Clear cart",
       "PUT /:userId/shipping - Update shipping",
       "POST /:userId/validate - Validate cart",
-      "GET /admin/statistics - Get cart statistics (Admin only)"
-    ]
+    ],
   });
 });
 
-// Optional: General error handler (for unexpected errors)
-router.use((err, req, res, next) => {
-  console.error("Cart API Error:", err);
+// Global error handler for cart routes
+router.use((error, req, res, next) => {
+  console.error("Cart route error:", error);
+
+  // Handle different types of errors
+  if (error.name === "ValidationError") {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: error.message,
+    });
+  }
+
+  if (error.name === "CastError") {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid ID format",
+      error: error.message,
+    });
+  }
+
+  // Default server error
   res.status(500).json({
     success: false,
-    message: "Internal server error in Cart API.",
-    error: err.message || "Unknown error"
+    message: "Internal server error in cart service",
+    error:
+      process.env.NODE_ENV === "production"
+        ? "Something went wrong"
+        : error.message,
   });
 });
 
 module.exports = router;
-//
