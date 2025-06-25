@@ -5,14 +5,6 @@ const cartController = require("../controllers/cartController");
 // Middleware for parsing JSON (if not set globally)
 router.use(express.json());
 
-// Health check
-router.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "OK",
-    service: "Simple Cart Service",
-    timestamp: new Date().toISOString(),
-  });
-});
 
 // ==========================================
 // BASIC CART OPERATIONS
@@ -90,54 +82,54 @@ router.get("/admin/statistics", cartController.getCartStatistics);
 // ==========================================
 
 // Handle 404 for unmatched routes
-router.use("*", (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Cart API route not found: ${req.method} ${req.originalUrl}`,
-    availableEndpoints: [
-      "GET /:userId - Get cart",
-      "GET /:userId/summary - Get cart summary",
-      "GET /:userId/count - Get items count",
-      "POST /:userId/add - Add item",
-      "PUT /:userId/item/:productId - Update item",
-      "DELETE /:userId/item/:productId - Remove item",
-      "DELETE /:userId/clear - Clear cart",
-      "PUT /:userId/shipping - Update shipping",
-      "POST /:userId/validate - Validate cart",
-    ],
-  });
-});
+// router.use("*", (req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     message: `Cart API route not found: ${req.method} ${req.originalUrl}`,
+//     availableEndpoints: [
+//       "GET /:userId - Get cart",
+//       "GET /:userId/summary - Get cart summary",
+//       "GET /:userId/count - Get items count",
+//       "POST /:userId/add - Add item",
+//       "PUT /:userId/item/:productId - Update item",
+//       "DELETE /:userId/item/:productId - Remove item",
+//       "DELETE /:userId/clear - Clear cart",
+//       "PUT /:userId/shipping - Update shipping",
+//       "POST /:userId/validate - Validate cart",
+//     ],
+//   });
+// });
 
-// Global error handler for cart routes
-router.use((error, req, res, next) => {
-  console.error("Cart route error:", error);
+// // Global error handler for cart routes
+// router.use((error, req, res, next) => {
+//   console.error("Cart route error:", error);
 
-  // Handle different types of errors
-  if (error.name === "ValidationError") {
-    return res.status(400).json({
-      success: false,
-      message: "Validation error",
-      error: error.message,
-    });
-  }
+//   // Handle different types of errors
+//   if (error.name === "ValidationError") {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Validation error",
+//       error: error.message,
+//     });
+//   }
 
-  if (error.name === "CastError") {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid ID format",
-      error: error.message,
-    });
-  }
+//   if (error.name === "CastError") {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Invalid ID format",
+//       error: error.message,
+//     });
+//   }
 
-  // Default server error
-  res.status(500).json({
-    success: false,
-    message: "Internal server error in cart service",
-    error:
-      process.env.NODE_ENV === "production"
-        ? "Something went wrong"
-        : error.message,
-  });
-});
+//   // Default server error
+//   res.status(500).json({
+//     success: false,
+//     message: "Internal server error in cart service",
+//     error:
+//       process.env.NODE_ENV === "production"
+//         ? "Something went wrong"
+//         : error.message,
+//   });
+// });
 
 module.exports = router;
