@@ -1,36 +1,70 @@
 const jwt = require("jsonwebtoken");
-const UserRepository = require("../Repository/UserRepository");
 
+// Required Auth - User must be logged in
 const protect = async (req, res, next) => {
-  let token;
-
-  // Check for token in cookies first, then fallback to headers
-  if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  } else if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await UserRepository.findById(decoded.id);
+    let token;
 
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
+    // Check cookie first, then header
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
     }
 
-    req.user = user;
+    if (!token) {
+      return res.status(401).json({ message: "Not authorized, no token" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    req.token = token;
     next();
   } catch (err) {
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
 
-module.exports = { protect };
+// Optional Auth - Works with or without login
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      req.token = token;
+    } else {
+      req.user = null;
+      req.token = null;
+    }
+    next();
+  } catch (err) {
+    req.user = null;
+    req.token = null;
+    next();
+  }
+};
+
+// Admin only
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Admin access required" });
+  }
+};
+
+module.exports = { protect, optionalAuth, requireAdmin };

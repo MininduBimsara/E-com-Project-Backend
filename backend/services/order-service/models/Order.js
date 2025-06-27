@@ -1,6 +1,10 @@
+// ==============================================
+// models/Order.js
+// ==============================================
+
 const mongoose = require("mongoose");
 
-const cartItemSchema = new mongoose.Schema({
+const orderItemSchema = new mongoose.Schema({
   productId: {
     type: String,
     required: true,
@@ -10,48 +14,94 @@ const cartItemSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
-  priceAtAdd: {
+  priceAtOrder: {
     type: Number,
     required: true,
     min: 0,
   },
-  addedAt: {
-    type: Date,
-    default: Date.now,
+  productName: {
+    type: String,
+    required: true,
+  },
+  productImageUrl: {
+    type: String,
+    default: null,
   },
 });
 
-const cartSchema = new mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     userId: {
       type: String,
       required: true,
       index: true,
     },
-    items: [cartItemSchema],
+    orderNumber: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    items: [orderItemSchema],
 
-    // Simple cart calculations
+    // Pricing details
     subtotal: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
     },
     shipping: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0,
     },
-
-    // Cart status
-    isActive: {
-      type: Boolean,
-      default: true,
+    total: {
+      type: Number,
+      required: true,
+      min: 0,
     },
-
-    // Currency
     currency: {
       type: String,
       default: "USD",
+    },
+
+    // Order status
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      default: "pending",
+    },
+
+    // Payment information
+    paymentId: {
+      type: String,
+      default: null,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
+
+    // Shipping information
+    shippingAddress: {
+      street: { type: String, required: true },
+      city: { type: String, required: true },
+      state: { type: String, required: true },
+      zipCode: { type: String, required: true },
+      country: { type: String, default: "USA" },
+    },
+
+    // Tracking
+    trackingNumber: {
+      type: String,
+      default: null,
     },
   },
   {
@@ -60,73 +110,22 @@ const cartSchema = new mongoose.Schema(
 );
 
 // Indexes for better performance
-cartSchema.index({ userId: 1, isActive: 1 });
+orderSchema.index({ userId: 1, status: 1 });
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ createdAt: -1 });
 
 // Virtual for total items count
-cartSchema.virtual("totalItems").get(function () {
+orderSchema.virtual("totalItems").get(function () {
   return this.items.reduce((total, item) => total + item.quantity, 0);
 });
 
-// Virtual for total price (subtotal + shipping)
-cartSchema.virtual("total").get(function () {
-  return this.subtotal + this.shipping;
-});
-
-// Method to add item to cart
-cartSchema.methods.addItem = function (productId, quantity, price) {
-  const existingItemIndex = this.items.findIndex(
-    (item) => item.productId === productId
-  );
-
-  if (existingItemIndex > -1) {
-    // Update existing item
-    this.items[existingItemIndex].quantity += quantity;
-    this.items[existingItemIndex].addedAt = new Date();
-  } else {
-    // Add new item
-    this.items.push({
-      productId,
-      quantity,
-      priceAtAdd: price,
-    });
-  }
+// Method to generate order number
+orderSchema.statics.generateOrderNumber = function () {
+  const timestamp = Date.now().toString();
+  const random = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
+  return `ORD-${timestamp}-${random}`;
 };
 
-// Method to remove item from cart
-cartSchema.methods.removeItem = function (productId) {
-  this.items = this.items.filter((item) => item.productId !== productId);
-};
-
-// Method to update item quantity
-cartSchema.methods.updateItemQuantity = function (productId, quantity) {
-  const item = this.items.find((item) => item.productId === productId);
-  if (item) {
-    if (quantity <= 0) {
-      this.removeItem(productId);
-    } else {
-      item.quantity = quantity;
-    }
-  }
-};
-
-// Method to calculate cart subtotal
-cartSchema.methods.calculateSubtotal = function () {
-  this.subtotal = this.items.reduce((total, item) => {
-    return total + item.priceAtAdd * item.quantity;
-  }, 0);
-};
-
-// Method to clear cart
-cartSchema.methods.clearCart = function () {
-  this.items = [];
-  this.subtotal = 0;
-  this.shipping = 0;
-};
-
-// Pre-save middleware to calculate subtotal
-cartSchema.pre("save", function (next) {
-  this.calculateSubtotal();
-  next();
-});
-
-module.exports = mongoose.model("Cart", cartSchema);
+module.exports = mongoose.model("Order", orderSchema);

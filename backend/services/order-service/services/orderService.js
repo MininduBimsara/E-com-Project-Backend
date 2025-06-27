@@ -27,7 +27,7 @@ class OrderService {
       }
 
       const response = await axios.get(
-        `${this.cartServiceUrl}/api/cart/${userId}`,
+        `${this.cartServiceUrl}/${userId}`,
         { headers }
       );
       return response.data.data || response.data;
@@ -49,7 +49,7 @@ class OrderService {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      await axios.delete(`${this.cartServiceUrl}/api/cart/${userId}/clear`, {
+      await axios.delete(`${this.cartServiceUrl}/${userId}/clear`, {
         headers,
       });
     } catch (error) {
@@ -68,7 +68,7 @@ class OrderService {
       }
 
       const response = await axios.get(
-        `${this.productServiceUrl}/api/products/details/${productId}`,
+        `${this.productServiceUrl}/details/${productId}`,
         { headers }
       );
       return response.data;
@@ -84,6 +84,7 @@ class OrderService {
   /**
    * Validate cart items before creating order
    */
+
   async validateCartForOrder(userId, token) {
     try {
       const headers = {};
@@ -92,7 +93,7 @@ class OrderService {
       }
 
       const response = await axios.post(
-        `${this.cartServiceUrl}/api/cart/${userId}/validate`,
+        `${this.cartServiceUrl}/${userId}/validate`,
         {},
         { headers }
       );

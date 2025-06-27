@@ -8,7 +8,7 @@ const productController = require("../controllers/productController");
 const { verifyAuth, optionalAuth } = require("../middlewares/authMiddleware");
 
 // Ensure upload directory exists
-const uploadPath = path.join(__dirname, "../../public/product-images");
+const uploadPath = path.join(__dirname, "./public/product-images");
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }

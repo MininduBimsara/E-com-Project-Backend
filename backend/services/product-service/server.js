@@ -13,8 +13,6 @@ dotenv.config();
 const app = express();
 
 
-
-
 // CORS configuration - MUST come before other middleware
 app.use(
   cors({
@@ -53,18 +51,13 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Create uploads directory if it doesn't exist
-// const uploadsDir = path.join(__dirname, "public/product-images");
-// if (!fs.existsSync(uploadsDir)) {
-//   fs.mkdirSync(uploadsDir, { recursive: true });
-// }
-
 
 // Serve static files for product images
-app.use(
-  "/product-images",
-  express.static(path.join(__dirname, "public/product-images"))
-);
+// app.use(
+//   "/product-images",
+//   express.static(path.join(__dirname, "public/product-images"))
+// );
+
 
 // Debug middleware to log incoming requests (remove in production)
 app.use((req, res, next) => {
