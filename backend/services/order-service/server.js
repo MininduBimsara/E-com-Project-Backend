@@ -36,44 +36,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error("Global error handler:", error);
-
-  if (error.name === "ValidationError") {
-    return res.status(400).json({
-      success: false,
-      message: "Validation error",
-      error: error.message,
-    });
-  }
-
-  if (error.name === "CastError") {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid ID format",
-      error: error.message,
-    });
-  }
-
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-    error:
-      process.env.NODE_ENV === "production"
-        ? "Something went wrong"
-        : error.message,
-  });
-});
-
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Order API route not found: ${req.method} ${req.originalUrl}`,
-  });
-});
-
 // Database connection and server startup
 mongoose
   .connect(process.env.MONGO_URI, {
