@@ -1,7 +1,7 @@
 const cartService = require("../services/cartService");
 
 /**
- * Simple Cart Controller - Handles HTTP requests for basic cart operations
+ * Updated Cart Controller - Works with centralized auth middleware
  */
 class CartController {
   /**
@@ -11,9 +11,9 @@ class CartController {
   async getCart(req, res) {
     try {
       const { userId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+
+      // Token is automatically extracted by middleware and available as req.token
+      const token = req.token;
 
       const cart = await cartService.getCart(userId, token);
 
@@ -63,9 +63,7 @@ class CartController {
     try {
       const { userId } = req.params;
       const { productId, quantity = 1 } = req.body;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token; // From middleware
 
       if (!productId) {
         return res.status(400).json({
@@ -118,9 +116,7 @@ class CartController {
     try {
       const { userId, productId } = req.params;
       const { quantity } = req.body;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token; // From middleware
 
       if (!Number.isInteger(quantity) || quantity < 0) {
         return res.status(400).json({
@@ -167,9 +163,7 @@ class CartController {
   async removeFromCart(req, res) {
     try {
       const { userId, productId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token; // From middleware
 
       const cart = await cartService.removeFromCart(userId, productId, token);
 
@@ -273,9 +267,15 @@ class CartController {
   async validateCart(req, res) {
     try {
       const { userId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token; // From middleware
+
+      // Additional security check - ensure user is accessing their own cart
+      if (req.user && req.user.id !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
 
       const result = await cartService.validateCart(userId, token);
 
@@ -304,6 +304,7 @@ class CartController {
    */
   async getCartStatistics(req, res) {
     try {
+      // Middleware already verified admin role
       const stats = await cartService.getCartStatistics();
 
       res.status(200).json({
