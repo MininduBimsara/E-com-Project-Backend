@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/cart", cartRoutes);
+app.use("/", cartRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI, {

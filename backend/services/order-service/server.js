@@ -25,7 +25,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Routes
-app.use("/api/orders", orderRoutes);
+app.use("/", orderRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

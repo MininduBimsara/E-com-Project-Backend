@@ -52,13 +52,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// Serve static files for product images
-// app.use(
-//   "/product-images",
-//   express.static(path.join(__dirname, "public/product-images"))
-// );
-
-
 // Debug middleware to log incoming requests (remove in production)
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -68,7 +61,7 @@ app.use((req, res, next) => {
 });
 
 // API routes
-app.use("/api/products", productRoutes);
+app.use("/", productRoutes);
 
 // MongoDB connection
 mongoose

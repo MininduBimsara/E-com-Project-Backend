@@ -1,43 +1,40 @@
-// ==============================================
-// repositories/orderRepository.js
-// ==============================================
-
-const Order = require("../models/Payment");
+// repositories/paymentRepository.js
+const Payment = require("../models/Payment"); // Fixed: Import Payment model
 
 /**
- * Order Repository - Handles database operations for Order model
+ * Payment Repository - Handles database operations for Payment model
  */
-class OrderRepository {
+class PaymentRepository {
   /**
-   * Create a new order
+   * Create a new payment
    */
-  async createOrder(orderData) {
-    const order = new Order(orderData);
-    return await order.save();
+  async createPayment(paymentData) {
+    const payment = new Payment(paymentData);
+    return await payment.save();
   }
 
   /**
-   * Find order by ID
+   * Find payment by ID
    */
-  async findOrderById(orderId) {
-    return await Order.findById(orderId);
+  async findPaymentById(paymentId) {
+    return await Payment.findById(paymentId);
   }
 
   /**
-   * Find order by order number
+   * Find payment by transaction ID
    */
-  async findOrderByNumber(orderNumber) {
-    return await Order.findOne({ orderNumber });
+  async findPaymentByTransactionId(transactionId) {
+    return await Payment.findOne({ transaction_id: transactionId });
   }
 
   /**
-   * Find orders by user ID
+   * Find payments by user ID
    */
-  async findOrdersByUserId(userId, options = {}) {
-    let query = Order.find({ userId });
+  async findPaymentsByUserId(userId, options = {}) {
+    let query = Payment.find({ user_id: userId });
 
     if (options.status) {
-      query = query.where({ status: options.status });
+      query = query.where({ payment_status: options.status });
     }
 
     if (options.sort) {
@@ -58,21 +55,69 @@ class OrderRepository {
   }
 
   /**
-   * Update order by ID
+   * Update payment by ID
    */
-  async updateOrderById(orderId, updateData) {
-    return await Order.findByIdAndUpdate(orderId, updateData, {
+  async updatePaymentById(paymentId, updateData) {
+    return await Payment.findByIdAndUpdate(paymentId, updateData, {
       new: true,
       runValidators: true,
     });
   }
 
   /**
-   * Count orders by user ID
+   * Find payments by order ID
    */
-  async countOrdersByUserId(userId) {
-    return await Order.countDocuments({ userId });
+  async findPaymentsByOrderId(orderId) {
+    return await Payment.find({ order_id: orderId });
+  }
+
+  /**
+   * Count payments by user ID
+   */
+  async countPaymentsByUserId(userId) {
+    return await Payment.countDocuments({ user_id: userId });
+  }
+
+  /**
+   * Get payment statistics
+   */
+  async getPaymentStatistics() {
+    const pipeline = [
+      {
+        $group: {
+          _id: null,
+          totalPayments: { $sum: 1 },
+          totalAmount: { $sum: "$amount" },
+          completedPayments: {
+            $sum: { $cond: [{ $eq: ["$payment_status", "completed"] }, 1, 0] },
+          },
+          pendingPayments: {
+            $sum: { $cond: [{ $eq: ["$payment_status", "pending"] }, 1, 0] },
+          },
+          failedPayments: {
+            $sum: { $cond: [{ $eq: ["$payment_status", "failed"] }, 1, 0] },
+          },
+          paypalPayments: {
+            $sum: { $cond: [{ $eq: ["$payment_method", "paypal"] }, 1, 0] },
+          },
+          averageAmount: { $avg: "$amount" },
+        },
+      },
+    ];
+
+    const result = await Payment.aggregate(pipeline);
+    return (
+      result[0] || {
+        totalPayments: 0,
+        totalAmount: 0,
+        completedPayments: 0,
+        pendingPayments: 0,
+        failedPayments: 0,
+        paypalPayments: 0,
+        averageAmount: 0,
+      }
+    );
   }
 }
 
-module.exports = new OrderRepository();
+module.exports = new PaymentRepository();

@@ -25,7 +25,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Routes
-app.use("/api/orders", paymentRoutes);
+app.use("/", paymentRoutes);
 
 const PORT = process.env.PORT || 4004;
 
