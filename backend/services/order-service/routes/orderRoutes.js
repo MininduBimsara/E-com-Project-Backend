@@ -19,19 +19,28 @@ router.get("/number/:orderNumber", protect, orderController.getOrderByNumber);
 router.get("/user/:userId", protect, orderController.getUserOrders);
 router.put("/:orderId/cancel", protect, orderController.cancelOrder);
 
-// Admin routes
-router.get("/admin/all", protect, requireAdmin, orderController.getAllOrders);
-router.put(
-  "/admin/:orderId/status",
-  protect,
-  requireAdmin,
-  orderController.updateOrderStatus
-);
-router.get(
-  "/admin/statistics",
-  protect,
-  requireAdmin,
-  orderController.getOrderStatistics
-);
+// ===============================
+// PAYMENT SERVICE INTEGRATION ROUTES
+// ===============================
+
+// Get order details for payment processing (called by Payment Service)
+router.get("/:orderId/payment-details", orderController.getOrderForPayment);
+
+// Update order payment status (called by Payment Service)
+router.put("/:orderId/payment-confirmation", orderController.updatePaymentStatus);
+
+// ===============================
+// ADMIN ROUTES (if you want them)
+// ===============================
+
+// Update order status (admin only)
+router.put("/admin/:orderId/status", protect, requireAdmin, orderController.updateOrderStatus);
+
+// Get orders by payment status (admin only)
+router.get("/admin/payment-status/:paymentStatus", protect, requireAdmin, orderController.getOrdersByPaymentStatus);
+
+// Get order statistics (admin only)
+router.get("/admin/statistics", protect, requireAdmin, orderController.getOrderStatistics);
+
 
 module.exports = router;

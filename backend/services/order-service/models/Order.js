@@ -79,14 +79,32 @@ const orderSchema = new mongoose.Schema(
     },
 
     // Payment information
+    // Payment information
     paymentId: {
       type: String,
       default: null,
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["paypal", "stripe", "cash_on_delivery"],
+      default: null,
+    },
+
+    // Payment timing
+    paymentCompletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Tracking who updated the order
+    updatedBy: {
+      type: String,
+      default: null,
     },
 
     // Shipping information
@@ -113,6 +131,9 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ userId: 1, status: 1 });
 orderSchema.index({ orderNumber: 1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ paymentMethod: 1 });
+orderSchema.index({ userId: 1, paymentStatus: 1 });
 
 // Virtual for total items count
 orderSchema.virtual("totalItems").get(function () {

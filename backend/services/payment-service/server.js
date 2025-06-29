@@ -40,9 +40,7 @@ app.get("/health", (req, res) => {
 
 // Database connection and server startup
 mongoose
-  .connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/payment-service"
-  )
+  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/payment-service")
   .then(() => {
     console.log("Connected to MongoDB");
     app.listen(PORT, () => {

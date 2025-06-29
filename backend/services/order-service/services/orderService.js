@@ -1,5 +1,5 @@
 // ==============================================
-// services/orderService.js
+// services/orderService.js - Updated with Payment Integration
 // ==============================================
 
 const axios = require("axios");
@@ -26,10 +26,9 @@ class OrderService {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await axios.get(
-        `${this.cartServiceUrl}/${userId}`,
-        { headers }
-      );
+      const response = await axios.get(`${this.cartServiceUrl}/${userId}`, {
+        headers,
+      });
       return response.data.data || response.data;
     } catch (error) {
       if (error.response?.status === 404) {
@@ -84,7 +83,6 @@ class OrderService {
   /**
    * Validate cart items before creating order
    */
-
   async validateCartForOrder(userId, token) {
     try {
       const headers = {};
@@ -250,6 +248,151 @@ class OrderService {
     return await orderRepository.updateOrderById(orderId, {
       status: "cancelled",
     });
+  }
+
+  // ===============================
+  // NEW PAYMENT INTEGRATION METHODS
+  // ===============================
+
+  /**
+   * Get order for payment processing (called by Payment Service)
+   * @param {String} orderId - Order ID
+   * @param {String} userId - User ID (optional for service calls)
+   */
+  async getOrderForPayment(orderId, userId = null) {
+    const order = await orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    // Verify ownership if userId provided
+    if (userId && order.userId !== userId) {
+      throw new Error("Not authorized to access this order");
+    }
+
+    return order;
+  }
+
+  /**
+   * Update order payment status (called by Payment Service)
+   * @param {String} orderId - Order ID
+   * @param {Object} paymentData - Payment information
+   * @param {String} userId - User ID (optional for service calls)
+   */
+  async updatePaymentStatus(orderId, paymentData, userId = null) {
+    const order = await orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    // Verify ownership if userId provided
+    if (userId && order.userId !== userId) {
+      throw new Error("Not authorized to update this order");
+    }
+
+    const { paymentStatus, status, paymentId, paymentMethod } = paymentData;
+
+    const updateData = {
+      paymentStatus: paymentStatus,
+      paymentId: paymentId,
+      paymentMethod: paymentMethod,
+    };
+
+    // Update main status if provided
+    if (status) {
+      updateData.status = status;
+    }
+
+    // Add payment completion timestamp
+    if (paymentStatus === "paid") {
+      updateData.paymentCompletedAt = new Date();
+    }
+
+    const updatedOrder = await orderRepository.updateOrderById(
+      orderId,
+      updateData
+    );
+
+    // Log the payment confirmation
+    console.log(`Order ${orderId} payment status updated:`, {
+      paymentStatus,
+      paymentId,
+      paymentMethod,
+      userId: userId || "system",
+    });
+
+    return updatedOrder;
+  }
+
+  /**
+   * Get order with payment details
+   * @param {String} orderId - Order ID
+   */
+  async getOrderWithPaymentDetails(orderId) {
+    return await orderRepository.findOrderById(orderId);
+  }
+
+  /**
+   * Update order status (for admin operations)
+   * @param {String} orderId - Order ID
+   * @param {String} status - New status
+   * @param {String} adminUserId - Admin user ID
+   */
+  async updateOrderStatus(orderId, status, adminUserId) {
+    const order = await orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const validStatuses = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
+
+    if (!validStatuses.includes(status)) {
+      throw new Error("Invalid order status");
+    }
+
+    const updatedOrder = await orderRepository.updateOrderById(orderId, {
+      status: status,
+      updatedBy: adminUserId,
+    });
+
+    console.log(
+      `Order ${orderId} status updated to ${status} by admin ${adminUserId}`
+    );
+
+    return updatedOrder;
+  }
+
+  /**
+   * Get orders by payment status (for admin)
+   * @param {String} paymentStatus - Payment status
+   * @param {Object} options - Query options
+   */
+  async getOrdersByPaymentStatus(paymentStatus, options = {}) {
+    const queryOptions = {
+      filter: { paymentStatus },
+      limit: parseInt(options.limit) || 50,
+      skip: parseInt(options.skip) || 0,
+      sort: { createdAt: -1 },
+    };
+
+    return await orderRepository.findOrdersWithFilter(queryOptions);
+  }
+
+  /**
+   * Get order statistics
+   */
+  async getOrderStatistics() {
+    return await orderRepository.getOrderStatistics();
   }
 }
 
