@@ -1,3 +1,7 @@
+// ==============================================
+// server.js
+// ==============================================
+
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -6,7 +10,7 @@ const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
-const cartRoutes = require("./routes/cartRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 
@@ -24,33 +28,39 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Routes
+app.use("/", paymentRoutes);
+
+const PORT = process.env.PORT || 4004;
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
-    service: "Cart Service",
+    service: "Payment Service",
     status: "healthy",
     timestamp: new Date().toISOString(),
   });
 });
 
-app.use("/", cartRoutes);
-
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error("Cart service error:", err);
+  console.error("Payment service error:", err);
   res.status(500).json({
     success: false,
     message: "Internal server error",
   });
 });
 
+// Database connection and server startup
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/payment-service")
   .then(() => {
     console.log("Connected to MongoDB");
-    app.listen(4002, () => console.log("Cart Service running on port 4002"));
+    app.listen(PORT, () => {
+      console.log(`Payment Service running on port ${PORT}`);
+    });
   })
-  .catch((err) => console.error("MongoDB connection failed:", err));
+  .catch((error) => {
+    console.error("Database connection error:", error);
+    process.exit(1);
+  });

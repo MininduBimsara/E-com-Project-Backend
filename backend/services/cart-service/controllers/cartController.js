@@ -1,19 +1,10 @@
 const cartService = require("../services/cartService");
 
-/**
- * Simple Cart Controller - Handles HTTP requests for basic cart operations
- */
 class CartController {
-  /**
-   * Get user's cart
-   * GET /api/cart/:userId
-   */
   async getCart(req, res) {
     try {
       const { userId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token;
 
       const cart = await cartService.getCart(userId, token);
 
@@ -31,14 +22,9 @@ class CartController {
     }
   }
 
-  /**
-   * Get cart summary (lightweight)
-   * GET /api/cart/:userId/summary
-   */
   async getCartSummary(req, res) {
     try {
       const { userId } = req.params;
-
       const summary = await cartService.getCartSummary(userId);
 
       res.status(200).json({
@@ -55,17 +41,11 @@ class CartController {
     }
   }
 
-  /**
-   * Add item to cart
-   * POST /api/cart/:userId/add
-   */
   async addToCart(req, res) {
     try {
       const { userId } = req.params;
       const { productId, quantity = 1 } = req.body;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token;
 
       if (!productId) {
         return res.status(400).json({
@@ -110,17 +90,11 @@ class CartController {
     }
   }
 
-  /**
-   * Update item quantity in cart
-   * PUT /api/cart/:userId/item/:productId
-   */
   async updateCartItem(req, res) {
     try {
       const { userId, productId } = req.params;
       const { quantity } = req.body;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token;
 
       if (!Number.isInteger(quantity) || quantity < 0) {
         return res.status(400).json({
@@ -160,16 +134,10 @@ class CartController {
     }
   }
 
-  /**
-   * Remove item from cart
-   * DELETE /api/cart/:userId/item/:productId
-   */
   async removeFromCart(req, res) {
     try {
       const { userId, productId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token;
 
       const cart = await cartService.removeFromCart(userId, productId, token);
 
@@ -180,24 +148,16 @@ class CartController {
       });
     } catch (error) {
       console.error("Remove from cart error:", error);
-
-      const statusCode = error.message.includes("not found") ? 404 : 500;
-
-      res.status(statusCode).json({
+      res.status(500).json({
         success: false,
         message: error.message,
       });
     }
   }
 
-  /**
-   * Clear entire cart
-   * DELETE /api/cart/:userId/clear
-   */
   async clearCart(req, res) {
     try {
       const { userId } = req.params;
-
       const result = await cartService.clearCart(userId);
 
       res.status(200).json({
@@ -214,14 +174,9 @@ class CartController {
     }
   }
 
-  /**
-   * Get cart items count
-   * GET /api/cart/:userId/count
-   */
   async getCartCount(req, res) {
     try {
       const { userId } = req.params;
-
       const count = await cartService.getCartItemsCount(userId);
 
       res.status(200).json({
@@ -238,10 +193,6 @@ class CartController {
     }
   }
 
-  /**
-   * Update shipping cost
-   * PUT /api/cart/:userId/shipping
-   */
   async updateShipping(req, res) {
     try {
       const { userId } = req.params;
@@ -256,26 +207,25 @@ class CartController {
       });
     } catch (error) {
       console.error("Update shipping error:", error);
-
-      const statusCode = error.message.includes("not found") ? 404 : 500;
-
-      res.status(statusCode).json({
+      res.status(500).json({
         success: false,
         message: error.message,
       });
     }
   }
 
-  /**
-   * Validate cart
-   * POST /api/cart/:userId/validate
-   */
   async validateCart(req, res) {
     try {
       const { userId } = req.params;
-      const token =
-        req.header("Authorization")?.replace("Bearer ", "") ||
-        req.cookies?.token;
+      const token = req.token;
+
+      // Check if user can access this cart
+      if (req.user && req.user.id !== userId && req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
 
       const result = await cartService.validateCart(userId, token);
 
@@ -286,22 +236,13 @@ class CartController {
       });
     } catch (error) {
       console.error("Validate cart error:", error);
-
-      const statusCode = error.message.includes("not found") ? 404 : 500;
-
-      res.status(statusCode).json({
+      res.status(500).json({
         success: false,
         message: error.message,
       });
     }
   }
 
-  // Admin endpoints
-
-  /**
-   * Get cart statistics (Admin only)
-   * GET /api/cart/admin/statistics
-   */
   async getCartStatistics(req, res) {
     try {
       const stats = await cartService.getCartStatistics();

@@ -2,7 +2,7 @@ const axios = require("axios");
 const cartRepository = require("../repositories/cartRepository");
 
 /**
- * Simple Cart Service - Basic business logic for cart operations
+ * Enhanced Cart Service with transaction support and better error handling
  */
 class CartService {
   constructor() {
@@ -11,63 +11,82 @@ class CartService {
   }
 
   /**
-   * Get product details from product service
-   * @param {String} productId - Product ID
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Product details
+   * Get product details from product service with retry logic
    */
-  async getProductDetails(productId, token = null) {
-    try {
-      const headers = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
+  async getProductDetails(productId, token = null, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const headers = {};
+        if (token) {
+          headers.Cookie = `token=${token}`;
+        }
 
-      const response = await axios.get(
-        `${this.productServiceUrl}/api/products/details/${productId}`,
-        { headers }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response?.status === 404) {
-        throw new Error("Product not found");
+        const response = await axios.get(
+          `${this.productServiceUrl}/api/products/details/${productId}`,
+          {
+            headers,
+            timeout: 5000,
+          }
+        );
+        return response.data;
+      } catch (error) {
+        if (attempt === retries) {
+          if (error.response?.status === 404) {
+            throw new Error("Product not found");
+          }
+          if (error.response?.status === 403) {
+            throw new Error("Product not available");
+          }
+          throw new Error(`Failed to fetch product details: ${error.message}`);
+        }
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       }
-      if (error.response?.status === 403) {
-        throw new Error("Product not available");
-      }
-      throw new Error(`Failed to fetch product details: ${error.message}`);
     }
   }
 
   /**
-   * Get multiple product details
-   * @param {Array} productIds - Array of product IDs
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Map of productId to product details
+   * Reserve product stock to prevent race conditions
    */
-  async getMultipleProductDetails(productIds, token = null) {
-    const productMap = {};
-
-    // Fetch products in parallel
-    const productPromises = productIds.map(async (productId) => {
-      try {
-        const product = await this.getProductDetails(productId, token);
-        productMap[productId] = product;
-      } catch (error) {
-        console.warn(`Failed to fetch product ${productId}:`, error.message);
-        productMap[productId] = null;
+  async reserveProductStock(productId, quantity, token) {
+    try {
+      const response = await axios.patch(
+        `${this.productServiceUrl}/api/products/${productId}/stock`,
+        { quantity: -quantity }, // Negative to reserve
+        {
+          headers: { Cookie: `token=${token}` },
+          timeout: 5000,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 400) {
+        throw new Error("Insufficient stock");
       }
-    });
+      throw new Error("Failed to reserve product stock");
+    }
+  }
 
-    await Promise.all(productPromises);
-    return productMap;
+  /**
+   * Release reserved product stock
+   */
+  async releaseProductStock(productId, quantity, token) {
+    try {
+      await axios.patch(
+        `${this.productServiceUrl}/api/products/${productId}/stock`,
+        { quantity: quantity }, // Positive to release
+        {
+          headers: { Cookie: `token=${token}` },
+          timeout: 5000,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to release product stock:", error.message);
+    }
   }
 
   /**
    * Get cart with populated product details
-   * @param {String} userId - User ID
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Cart with product details
    */
   async getCart(userId, token = null) {
     let cart = await cartRepository.findCartByUserId(userId);
@@ -113,12 +132,7 @@ class CartService {
   }
 
   /**
-   * Add item to cart
-   * @param {String} userId - User ID
-   * @param {String} productId - Product ID
-   * @param {Number} quantity - Quantity to add
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Updated cart
+   * Add item to cart with transaction support
    */
   async addToCart(userId, productId, quantity, token = null) {
     if (!productId || !quantity || quantity <= 0) {
@@ -138,40 +152,49 @@ class CartService {
       );
     }
 
-    // Get or create cart
-    let cart = await cartRepository.findCartByUserId(userId);
-    if (!cart) {
-      cart = cartRepository.createCart(userId);
-    }
+    // Start transaction-like operation
+    let stockReserved = false;
+    try {
+      // Reserve stock first
+      await this.reserveProductStock(productId, quantity, token);
+      stockReserved = true;
 
-    // Check if adding this quantity would exceed stock
-    const existingItem = cart.items.find(
-      (item) => item.productId === productId
-    );
-    const totalQuantityAfterAdd = existingItem
-      ? existingItem.quantity + quantity
-      : quantity;
+      // Get or create cart
+      let cart = await cartRepository.findCartByUserId(userId);
+      if (!cart) {
+        cart = cartRepository.createCart(userId);
+      }
 
-    if (totalQuantityAfterAdd > product.stock) {
-      throw new Error(
-        `Cannot add ${quantity} items. Total would exceed available stock of ${product.stock}`
+      // Check if adding this quantity would exceed stock
+      const existingItem = cart.items.find(
+        (item) => item.productId === productId
       );
+      const totalQuantityAfterAdd = existingItem
+        ? existingItem.quantity + quantity
+        : quantity;
+
+      if (totalQuantityAfterAdd > product.stock) {
+        throw new Error(
+          `Cannot add ${quantity} items. Total would exceed available stock of ${product.stock}`
+        );
+      }
+
+      // Add item to cart
+      cart.addItem(productId, quantity, product.price);
+
+      await cartRepository.saveCart(cart);
+      return await this.getCart(userId, token);
+    } catch (error) {
+      // Rollback: release reserved stock if reservation was successful
+      if (stockReserved) {
+        await this.releaseProductStock(productId, quantity, token);
+      }
+      throw error;
     }
-
-    // Add item to cart
-    cart.addItem(productId, quantity, product.price);
-
-    await cartRepository.saveCart(cart);
-    return await this.getCart(userId, token);
   }
 
   /**
-   * Update item quantity in cart
-   * @param {String} userId - User ID
-   * @param {String} productId - Product ID
-   * @param {Number} quantity - New quantity
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Updated cart
+   * Update item quantity in cart with transaction support
    */
   async updateCartItem(userId, productId, quantity, token = null) {
     const cart = await cartRepository.findCartByUserId(userId);
@@ -190,26 +213,45 @@ class CartService {
       return await this.removeFromCart(userId, productId, token);
     }
 
-    // Validate stock availability
-    const product = await this.getProductDetails(productId, token);
-    if (quantity > product.stock) {
-      throw new Error(
-        `Insufficient stock. Only ${product.stock} items available`
+    // Calculate stock difference
+    const stockDifference = quantity - existingItem.quantity;
+
+    if (stockDifference > 0) {
+      // Need to reserve more stock
+      try {
+        await this.reserveProductStock(productId, stockDifference, token);
+
+        // Update cart
+        existingItem.quantity = quantity;
+        await cartRepository.saveCart(cart);
+
+        return await this.getCart(userId, token);
+      } catch (error) {
+        throw new Error(
+          `Insufficient stock. Only ${existingItem.quantity} items available`
+        );
+      }
+    } else if (stockDifference < 0) {
+      // Release excess stock
+      await this.releaseProductStock(
+        productId,
+        Math.abs(stockDifference),
+        token
       );
+
+      // Update cart
+      existingItem.quantity = quantity;
+      await cartRepository.saveCart(cart);
+
+      return await this.getCart(userId, token);
     }
 
-    cart.updateItemQuantity(productId, quantity);
-    await cartRepository.saveCart(cart);
-
+    // No change in quantity
     return await this.getCart(userId, token);
   }
 
   /**
-   * Remove item from cart
-   * @param {String} userId - User ID
-   * @param {String} productId - Product ID
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Updated cart
+   * Remove from cart with stock release
    */
   async removeFromCart(userId, productId, token = null) {
     const cart = await cartRepository.findCartByUserId(userId);
@@ -217,11 +259,17 @@ class CartService {
       throw new Error("Cart not found");
     }
 
-    const itemExists = cart.items.some((item) => item.productId === productId);
-    if (!itemExists) {
+    const existingItem = cart.items.find(
+      (item) => item.productId === productId
+    );
+    if (!existingItem) {
       throw new Error("Item not found in cart");
     }
 
+    // Release reserved stock
+    await this.releaseProductStock(productId, existingItem.quantity, token);
+
+    // Remove item from cart
     cart.removeItem(productId);
     await cartRepository.saveCart(cart);
 
@@ -229,16 +277,21 @@ class CartService {
   }
 
   /**
-   * Clear entire cart
-   * @param {String} userId - User ID
-   * @returns {Object} Cleared cart
+   * Clear cart with stock release
    */
-  async clearCart(userId) {
+  async clearCart(userId, token = null) {
     const cart = await cartRepository.findCartByUserId(userId);
     if (!cart) {
-      return { message: "Cart is already empty" };
+      throw new Error("Cart not found");
     }
 
+    // Release all reserved stock
+    const releasePromises = cart.items.map((item) =>
+      this.releaseProductStock(item.productId, item.quantity, token)
+    );
+    await Promise.all(releasePromises);
+
+    // Clear cart
     cart.clearCart();
     await cartRepository.saveCart(cart);
 
@@ -246,47 +299,58 @@ class CartService {
   }
 
   /**
-   * Get cart items count
-   * @param {String} userId - User ID
-   * @returns {Number} Total items count
+   * Get multiple product details with error handling
    */
-  async getCartItemsCount(userId) {
-    return await cartRepository.getCartItemsCount(userId);
+  async getMultipleProductDetails(productIds, token = null) {
+    const productMap = {};
+
+    // Fetch products in parallel with individual error handling
+    const productPromises = productIds.map(async (productId) => {
+      try {
+        const product = await this.getProductDetails(productId, token);
+        productMap[productId] = product;
+      } catch (error) {
+        console.warn(`Failed to fetch product ${productId}:`, error.message);
+        productMap[productId] = null;
+      }
+    });
+
+    await Promise.all(productPromises);
+    return productMap;
   }
 
   /**
-   * Get cart summary (lightweight version)
-   * @param {String} userId - User ID
-   * @returns {Object} Cart summary
+   * Get cart items count
+   */
+  async getCartItemsCount(userId) {
+    const cart = await cartRepository.findCartByUserId(userId);
+    return cart ? cart.totalItems : 0;
+  }
+
+  /**
+   * Get cart summary
    */
   async getCartSummary(userId) {
     const cart = await cartRepository.findCartByUserId(userId);
-
     if (!cart) {
       return {
-        userId,
         totalItems: 0,
         subtotal: 0,
+        shipping: 0,
         total: 0,
-        hasItems: false,
       };
     }
 
     return {
-      userId: cart.userId,
       totalItems: cart.totalItems,
       subtotal: cart.subtotal,
+      shipping: cart.shipping,
       total: cart.total,
-      hasItems: cart.items.length > 0,
-      lastUpdated: cart.updatedAt,
     };
   }
 
   /**
    * Update shipping cost
-   * @param {String} userId - User ID
-   * @param {Number} shippingCost - Shipping cost
-   * @returns {Object} Updated cart
    */
   async updateShipping(userId, shippingCost = 0) {
     const cart = await cartRepository.findCartByUserId(userId);
@@ -301,73 +365,63 @@ class CartService {
   }
 
   /**
-   * Get cart statistics (for admin dashboard)
-   * @returns {Object} Cart statistics
+   * Get cart statistics
    */
   async getCartStatistics() {
     return await cartRepository.getCartStatistics();
   }
 
   /**
-   * Validate cart items against current product data
-   * @param {String} userId - User ID
-   * @param {String} token - Auth token (optional)
-   * @returns {Object} Validation result
+   * Validate cart items
    */
   async validateCart(userId, token = null) {
     const cart = await cartRepository.findCartByUserId(userId);
-    if (!cart) {
-      throw new Error("Cart not found");
+    if (!cart || cart.items.length === 0) {
+      return { valid: false, message: "Cart is empty" };
     }
 
-    if (!cart.items || cart.items.length === 0) {
-      return { valid: true, issues: [] };
-    }
+    const validationResults = await Promise.all(
+      cart.items.map(async (item) => {
+        try {
+          const product = await this.getProductDetails(item.productId, token);
 
-    const productIds = cart.items.map((item) => item.productId);
-    const productMap = await this.getMultipleProductDetails(productIds, token);
+          if (!product.isActive) {
+            return {
+              productId: item.productId,
+              valid: false,
+              message: "Product is no longer available",
+            };
+          }
 
-    const issues = [];
+          if (product.stock < item.quantity) {
+            return {
+              productId: item.productId,
+              valid: false,
+              message: `Insufficient stock. Only ${product.stock} available`,
+            };
+          }
 
-    for (const item of cart.items) {
-      const product = productMap[item.productId];
+          return {
+            productId: item.productId,
+            valid: true,
+          };
+        } catch (error) {
+          return {
+            productId: item.productId,
+            valid: false,
+            message: "Product not found",
+          };
+        }
+      })
+    );
 
-      if (!product) {
-        issues.push({
-          type: "PRODUCT_NOT_FOUND",
-          productId: item.productId,
-          message: "Product no longer available",
-        });
-        continue;
-      }
-
-      // Check stock availability
-      if (product.stock < item.quantity) {
-        issues.push({
-          type: "INSUFFICIENT_STOCK",
-          productId: item.productId,
-          requestedQuantity: item.quantity,
-          availableStock: product.stock,
-          message: `Only ${product.stock} items available`,
-        });
-      }
-
-      // Check price changes
-      if (Math.abs(product.price - item.priceAtAdd) > 0.01) {
-        issues.push({
-          type: "PRICE_CHANGED",
-          productId: item.productId,
-          oldPrice: item.priceAtAdd,
-          newPrice: product.price,
-          message: `Price changed from $${item.priceAtAdd} to $${product.price}`,
-        });
-      }
-    }
+    const invalidItems = validationResults.filter((result) => !result.valid);
 
     return {
-      valid: issues.length === 0,
-      issues,
-      cart: await this.getCart(userId, token),
+      valid: invalidItems.length === 0,
+      invalidItems,
+      message:
+        invalidItems.length > 0 ? "Some items are invalid" : "Cart is valid",
     };
   }
 }
