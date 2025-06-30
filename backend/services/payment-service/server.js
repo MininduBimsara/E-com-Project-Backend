@@ -14,14 +14,18 @@ const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 
-// Middleware
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true,
-  })
-);
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  exposedHeaders: ["Set-Cookie"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
@@ -32,9 +36,18 @@ const PORT = process.env.PORT || 4004;
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
-    service: "Order Service",
+    service: "Payment Service",
     status: "healthy",
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Payment service error:", err);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
   });
 });
 

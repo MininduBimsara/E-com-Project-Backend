@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
 /**
@@ -10,50 +11,21 @@ const verifyAuth = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in cookies first, then fallback to Authorization header
+    // Check cookie only
     if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
-    } else {
-      token = req.header("Authorization")?.replace("Bearer ", "");
     }
 
     if (!token) {
-      return res.status(401).json({
-        message: "Access denied. No token provided.",
-      });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Call the user service to verify the token
-    const userServiceUrl =
-      process.env.USER_SERVICE_URL || "http://localhost:4000";
-    const response = await axios.get(`${userServiceUrl}/api/auth/verify`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.status === 200 && response.data.user) {
-      // Add user information to request object
-      req.user = response.data.user;
-      next();
-    } else {
-      return res.status(401).json({
-        message: "Invalid token.",
-      });
-    }
-  } catch (error) {
-    console.error("Auth verification error:", error.message);
-
-    if (error.response?.status === 401) {
-      return res.status(401).json({
-        message: "Invalid or expired token.",
-      });
-    }
-
-    return res.status(500).json({
-      message: "Authentication service unavailable.",
-      error: error.message,
-    });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    req.token = token;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
 
@@ -67,42 +39,66 @@ const optionalAuth = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in cookies first, then fallback to Authorization header
     if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
+    }
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      req.token = token;
     } else {
-      token = req.header("Authorization")?.replace("Bearer ", "");
-    }
-
-    if (!token) {
       req.user = null;
-      return next();
+      req.token = null;
+    }
+    next();
+  } catch (err) {
+    req.user = null;
+    req.token = null;
+    next();
+  }
+};
+
+// Admin only
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Admin access required" });
+  }
+};
+
+// Verify user exists in user service
+const verifyUser = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
     }
 
-    // Call the user service to verify the token
     const userServiceUrl =
       process.env.USER_SERVICE_URL || "http://localhost:4000";
-    const response = await axios.get(`${userServiceUrl}/api/auth/verify`, {
+
+    const response = await axios.get(`${userServiceUrl}/api/users/profile`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Cookie: `token=${req.token}`,
       },
+      timeout: 5000,
     });
 
-    if (response.status === 200 && response.data.user) {
-      req.user = response.data.user;
+    if (response.status === 200) {
+      next();
     } else {
-      req.user = null;
+      res.status(401).json({ message: "Invalid user" });
     }
-
-    next();
   } catch (error) {
-    console.error("Optional auth verification error:", error.message);
-    req.user = null;
-    next();
+    console.error("User verification error:", error.message);
+    res.status(401).json({ message: "User verification failed" });
   }
 };
 
 module.exports = {
   verifyAuth,
   optionalAuth,
+  requireAdmin,
+  verifyUser,
 };
