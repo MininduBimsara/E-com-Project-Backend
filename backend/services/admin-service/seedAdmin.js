@@ -28,7 +28,7 @@ const createAdmin = async () => {
     });
 
     await admin.save();
-
+cd
     console.log("✅ Admin user created successfully!");
     console.log("📧 Email: admin@example.com");
     console.log("🔑 Password: admin123");

@@ -80,6 +80,26 @@ app.use(
   })
 );
 
+app.use(
+  "/api/admin",
+  proxy("http://localhost:4005", {
+    proxyErrorHandler: (err, res, next) => {
+      console.error("Admin service proxy error:", err);
+      res.status(503).json({ message: "Admin service unavailable" });
+    },
+  })
+);
+
+app.use(
+  "/api/auth",
+  proxy("http://localhost:4000", {
+    proxyErrorHandler: (err, res, next) => {
+      console.error("User service (auth) proxy error:", err);
+      res.status(503).json({ message: "User service unavailable" });
+    },
+  })
+);
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("Gateway error:", err);

@@ -10,7 +10,7 @@ const {
   updateUserStatus,
   logout,
 } = require("../controllers/adminController");
-const { protect, requireSuperAdmin } = require("../middlewares/auth");
+const { protect, requireAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -46,7 +46,7 @@ router.put("/orders/:orderId/status", updateOrderStatus);
 // SUPER ADMIN ONLY ROUTES
 // ========================================
 // If you want some routes only for super admins, uncomment below:
-// router.use(requireSuperAdmin);
+// router.use(requireAdmin);
 // router.delete('/users/:userId', deleteUser); // Example
 
 module.exports = router;

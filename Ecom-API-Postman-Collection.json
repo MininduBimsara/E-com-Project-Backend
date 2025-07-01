@@ -1,0 +1,882 @@
+{
+  "info": {
+    "_postman_id": "ecom-backend-collection-002",
+    "name": "Ecom Project API (Gateway, Full Coverage)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User Service",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/users/current",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "users", "current"]
+            }
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User By ID",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User By ID",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/auth/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/auth/verify",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "auth", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Service",
+      "item": [
+        {
+          "name": "Test Route",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products/test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "test"]
+            }
+          }
+        },
+        {
+          "name": "Get Public Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products/public",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "public"]
+            }
+          }
+        },
+        {
+          "name": "Get Featured Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products/featured",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "featured"]
+            }
+          }
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products/search?q=phone",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "search"],
+              "query": [{ "key": "q", "value": "phone" }]
+            }
+          }
+        },
+        {
+          "name": "Get Products By Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products/category/Electronics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "category", "Electronics"]
+            }
+          }
+        },
+        {
+          "name": "Get User Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/products/my",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "my"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sample Product\",\n  \"description\": \"A great product\",\n  \"price\": 19.99,\n  \"category\": \"Electronics\",\n  \"stock\": 100\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product\",\n  \"price\": 29.99\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/products/{{productId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Product Stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"stock\": 50\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/products/{{productId}}/stock",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "{{productId}}", "stock"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/products/{{productId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Products (Main List)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/products/details/{{productId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "products", "details", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart Service",
+      "item": [
+        {
+          "name": "Get Cart Count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/count",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "count"]
+            }
+          }
+        },
+        {
+          "name": "Get Cart Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/summary",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Add To Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"product_id_here\",\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/add",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "add"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/item/{{productId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "item", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Remove From Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/item/{{productId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "item", "{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/clear",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "clear"]
+            }
+          }
+        },
+        {
+          "name": "Update Shipping",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"shippingCost\": 10.99\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/shipping",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "shipping"]
+            }
+          }
+        },
+        {
+          "name": "Validate Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/cart/{{userId}}/validate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "{{userId}}", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Get Cart Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/cart/admin/statistics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "cart", "admin", "statistics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order Service",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cartId\": \"cart_id_here\",\n  \"shippingAddress\": \"123 Main St, City\",\n  \"paymentMethod\": \"paypal\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/{{orderId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Order By Number",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/number/{{orderNumber}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "number", "{{orderNumber}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/user/{{userId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "user", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/{{orderId}}/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "{{orderId}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Get Order For Payment (Payment Service)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:4005/api/orders/{{orderId}}/payment-details",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "{{orderId}}", "payment-details"]
+            }
+          }
+        },
+        {
+          "name": "Update Payment Status (Payment Service)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"paid\"\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/orders/{{orderId}}/payment-confirmation",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "{{orderId}}", "payment-confirmation"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/orders/admin/{{orderId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "admin", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders By Payment Status (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/admin/payment-status/paid",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "admin", "payment-status", "paid"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Statistics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/orders/admin/statistics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "orders", "admin", "statistics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        {
+          "name": "Create PayPal Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"order_id_here\",\n  \"amount\": 19.99\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/payments/paypal/create-order",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "payments", "paypal", "create-order"]
+            }
+          }
+        },
+        {
+          "name": "Capture PayPal Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"order_id_here\",\n  \"paypalOrderId\": \"paypal_order_id_here\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/payments/paypal/capture-order",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "payments", "paypal", "capture-order"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/payments/history",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "payments", "history"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:4005/api/payments/{{transactionId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "payments", "{{transactionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Service",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminpass\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4005/api/admin/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Admin Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/dashboard",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/users",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/admin/users/{{userId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "users", "{{userId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Get Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:4005/api/admin/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
+            "url": {
+              "raw": "http://localhost:4005/api/admin/orders/{{orderId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["api", "admin", "orders", "{{orderId}}", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

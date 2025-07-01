@@ -9,7 +9,6 @@ const connectDatabase = async () => {
       maxPoolSize: 10, // Maximum number of connections in the pool
       serverSelectionTimeoutMS: 5000, // Timeout for server selection
       socketTimeoutMS: 45000, // Timeout for socket operations
-      bufferMaxEntries: 0, // Disable mongoose buffering
       bufferCommands: false, // Disable mongoose buffering
     };
 
