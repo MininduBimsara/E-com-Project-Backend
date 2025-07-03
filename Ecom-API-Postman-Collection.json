@@ -1,7 +1,7 @@
 {
   "info": {
-    "_postman_id": "ecom-backend-collection-002",
-    "name": "Ecom Project API (Gateway, Full Coverage)",
+    "_postman_id": "ecom-backend-collection-003",
+    "name": "Ecom Project API (Gateway on 5000)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -14,10 +14,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/users/current",
+              "raw": "http://localhost:5000/api/users/current",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "users", "current"]
             }
           }
@@ -28,10 +28,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "raw": "http://localhost:5000/api/users/{{userId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -49,10 +49,10 @@
               "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "raw": "http://localhost:5000/api/users/{{userId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -63,10 +63,10 @@
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/users/{{userId}}",
+              "raw": "http://localhost:5000/api/users/{{userId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -86,10 +86,10 @@
               "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/auth/register",
+              "raw": "http://localhost:5000/api/auth/register",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "auth", "register"]
             }
           }
@@ -104,10 +104,10 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/auth/login",
+              "raw": "http://localhost:5000/api/auth/login",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "auth", "login"]
             }
           }
@@ -118,10 +118,10 @@
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/auth/logout",
+              "raw": "http://localhost:5000/api/auth/logout",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "auth", "logout"]
             }
           }
@@ -132,10 +132,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/auth/verify",
+              "raw": "http://localhost:5000/api/auth/verify",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "auth", "verify"]
             }
           }
@@ -150,10 +150,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products/test",
+              "raw": "http://localhost:5000/api/products/test",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "test"]
             }
           }
@@ -163,10 +163,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products/public",
+              "raw": "http://localhost:5000/api/products/public",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "public"]
             }
           }
@@ -176,10 +176,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products/featured",
+              "raw": "http://localhost:5000/api/products/featured",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "featured"]
             }
           }
@@ -189,10 +189,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products/search?q=phone",
+              "raw": "http://localhost:5000/api/products/search?q=phone",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "search"],
               "query": [{ "key": "q", "value": "phone" }]
             }
@@ -203,10 +203,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products/category/Electronics",
+              "raw": "http://localhost:5000/api/products/category/Electronics",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "category", "Electronics"]
             }
           }
@@ -217,10 +217,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/products/my",
+              "raw": "http://localhost:5000/api/products/my",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "my"]
             }
           }
@@ -238,10 +238,10 @@
               "raw": "{\n  \"name\": \"Sample Product\",\n  \"description\": \"A great product\",\n  \"price\": 19.99,\n  \"category\": \"Electronics\",\n  \"stock\": 100\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/products",
+              "raw": "http://localhost:5000/api/products",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products"]
             }
           }
@@ -259,10 +259,10 @@
               "raw": "{\n  \"name\": \"Updated Product\",\n  \"price\": 29.99\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/products/{{productId}}",
+              "raw": "http://localhost:5000/api/products/{{productId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "{{productId}}"]
             }
           }
@@ -277,10 +277,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"stock\": 50\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/products/{{productId}}/stock",
+              "raw": "http://localhost:5000/api/products/{{productId}}/stock",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "{{productId}}", "stock"]
             }
           }
@@ -291,10 +291,10 @@
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/products/{{productId}}",
+              "raw": "http://localhost:5000/api/products/{{productId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "{{productId}}"]
             }
           }
@@ -304,10 +304,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/products",
+              "raw": "http://localhost:5000/api/products",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products"]
             }
           }
@@ -318,10 +318,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/products/details/{{productId}}",
+              "raw": "http://localhost:5000/api/products/details/{{productId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "products", "details", "{{productId}}"]
             }
           }
@@ -336,10 +336,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/count",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/count",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "count"]
             }
           }
@@ -349,10 +349,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/summary",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/summary",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "summary"]
             }
           }
@@ -363,10 +363,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}",
+              "raw": "http://localhost:5000/api/cart/{{userId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}"]
             }
           }
@@ -384,10 +384,10 @@
               "raw": "{\n  \"productId\": \"product_id_here\",\n  \"quantity\": 2\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/add",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/add",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "add"]
             }
           }
@@ -402,10 +402,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/item/{{productId}}",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/item/{{productId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "item", "{{productId}}"]
             }
           }
@@ -416,10 +416,10 @@
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/item/{{productId}}",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/item/{{productId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "item", "{{productId}}"]
             }
           }
@@ -430,10 +430,10 @@
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/clear",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/clear",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "clear"]
             }
           }
@@ -448,10 +448,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"shippingCost\": 10.99\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/shipping",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/shipping",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "shipping"]
             }
           }
@@ -462,10 +462,10 @@
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/cart/{{userId}}/validate",
+              "raw": "http://localhost:5000/api/cart/{{userId}}/validate",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "{{userId}}", "validate"]
             }
           }
@@ -478,10 +478,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/cart/admin/statistics",
+              "raw": "http://localhost:5000/api/cart/admin/statistics",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "cart", "admin", "statistics"]
             }
           }
@@ -504,10 +504,10 @@
               "raw": "{\n  \"cartId\": \"cart_id_here\",\n  \"shippingAddress\": \"123 Main St, City\",\n  \"paymentMethod\": \"paypal\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/orders",
+              "raw": "http://localhost:5000/api/orders",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders"]
             }
           }
@@ -518,10 +518,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/orders/{{orderId}}",
+              "raw": "http://localhost:5000/api/orders/{{orderId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "{{orderId}}"]
             }
           }
@@ -532,10 +532,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/orders/number/{{orderNumber}}",
+              "raw": "http://localhost:5000/api/orders/number/{{orderNumber}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "number", "{{orderNumber}}"]
             }
           }
@@ -546,10 +546,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/orders/user/{{userId}}",
+              "raw": "http://localhost:5000/api/orders/user/{{userId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "user", "{{userId}}"]
             }
           }
@@ -560,10 +560,10 @@
             "method": "PUT",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/orders/{{orderId}}/cancel",
+              "raw": "http://localhost:5000/api/orders/{{orderId}}/cancel",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "{{orderId}}", "cancel"]
             }
           }
@@ -573,10 +573,10 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:4005/api/orders/{{orderId}}/payment-details",
+              "raw": "http://localhost:5000/api/orders/{{orderId}}/payment-details",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "{{orderId}}", "payment-details"]
             }
           }
@@ -588,10 +588,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"paid\"\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/orders/{{orderId}}/payment-confirmation",
+              "raw": "http://localhost:5000/api/orders/{{orderId}}/payment-confirmation",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "{{orderId}}", "payment-confirmation"]
             }
           }
@@ -606,10 +606,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/orders/admin/{{orderId}}/status",
+              "raw": "http://localhost:5000/api/orders/admin/{{orderId}}/status",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "admin", "{{orderId}}", "status"]
             }
           }
@@ -622,10 +622,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/orders/admin/payment-status/paid",
+              "raw": "http://localhost:5000/api/orders/admin/payment-status/paid",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "admin", "payment-status", "paid"]
             }
           }
@@ -638,10 +638,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/orders/admin/statistics",
+              "raw": "http://localhost:5000/api/orders/admin/statistics",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "orders", "admin", "statistics"]
             }
           }
@@ -664,10 +664,10 @@
               "raw": "{\n  \"orderId\": \"order_id_here\",\n  \"amount\": 19.99\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/payments/paypal/create-order",
+              "raw": "http://localhost:5000/api/payments/paypal/create-order",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "payments", "paypal", "create-order"]
             }
           }
@@ -685,10 +685,10 @@
               "raw": "{\n  \"orderId\": \"order_id_here\",\n  \"paypalOrderId\": \"paypal_order_id_here\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/payments/paypal/capture-order",
+              "raw": "http://localhost:5000/api/payments/paypal/capture-order",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "payments", "paypal", "capture-order"]
             }
           }
@@ -699,10 +699,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/payments/history",
+              "raw": "http://localhost:5000/api/payments/history",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "payments", "history"]
             }
           }
@@ -713,10 +713,10 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:4005/api/payments/{{transactionId}}",
+              "raw": "http://localhost:5000/api/payments/{{transactionId}}",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "payments", "{{transactionId}}"]
             }
           }
@@ -736,10 +736,10 @@
               "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminpass\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4005/api/admin/login",
+              "raw": "http://localhost:5000/api/admin/login",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "login"]
             }
           }
@@ -752,10 +752,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/profile",
+              "raw": "http://localhost:5000/api/admin/profile",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "profile"]
             }
           }
@@ -768,10 +768,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/logout",
+              "raw": "http://localhost:5000/api/admin/logout",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "logout"]
             }
           }
@@ -784,10 +784,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/dashboard",
+              "raw": "http://localhost:5000/api/admin/dashboard",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "dashboard"]
             }
           }
@@ -800,10 +800,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/users",
+              "raw": "http://localhost:5000/api/admin/users",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "users"]
             }
           }
@@ -818,10 +818,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/admin/users/{{userId}}/status",
+              "raw": "http://localhost:5000/api/admin/users/{{userId}}/status",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "users", "{{userId}}", "status"]
             }
           }
@@ -834,10 +834,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/products",
+              "raw": "http://localhost:5000/api/admin/products",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "products"]
             }
           }
@@ -850,10 +850,10 @@
               { "key": "Authorization", "value": "Bearer {{admin_token}}" }
             ],
             "url": {
-              "raw": "http://localhost:4005/api/admin/orders",
+              "raw": "http://localhost:5000/api/admin/orders",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "orders"]
             }
           }
@@ -868,10 +868,10 @@
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
             "url": {
-              "raw": "http://localhost:4005/api/admin/orders/{{orderId}}/status",
+              "raw": "http://localhost:5000/api/admin/orders/{{orderId}}/status",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4005",
+              "port": "5000",
               "path": ["api", "admin", "orders", "{{orderId}}", "status"]
             }
           }

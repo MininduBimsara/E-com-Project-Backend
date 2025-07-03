@@ -17,8 +17,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -28,6 +27,16 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use(
+  "/api/auth",
+  proxy("http://localhost:4000", {
+    proxyErrorHandler: (err, res, next) => {
+      console.error("User service (auth) proxy error:", err);
+      res.status(503).json({ message: "User service unavailable" });
+    },
+  })
+);
 
 // Proxy routes with error handling
 app.use(
@@ -90,23 +99,13 @@ app.use(
   })
 );
 
-app.use(
-  "/api/auth",
-  proxy("http://localhost:4000", {
-    proxyErrorHandler: (err, res, next) => {
-      console.error("User service (auth) proxy error:", err);
-      res.status(503).json({ message: "User service unavailable" });
-    },
-  })
-);
-
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("Gateway error:", err);
   res.status(500).json({ message: "Internal server error" });
 });
 
-const PORT = process.env.PORT || 4005;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`API Gateway running on port ${PORT}`);
 });
