@@ -1,4 +1,3 @@
-// orderRoutes.js
 const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/orderController");
@@ -27,20 +26,37 @@ router.put("/:orderId/cancel", protect, orderController.cancelOrder);
 router.get("/:orderId/payment-details", orderController.getOrderForPayment);
 
 // Update order payment status (called by Payment Service)
-router.put("/:orderId/payment-confirmation", orderController.updatePaymentStatus);
+router.put(
+  "/:orderId/payment-confirmation",
+  orderController.updatePaymentStatus
+);
 
 // ===============================
 // ADMIN ROUTES (if you want them)
 // ===============================
 
 // Update order status (admin only)
-router.put("/admin/:orderId/status", protect, requireAdmin, orderController.updateOrderStatus);
+router.put(
+  "/admin/:orderId/status",
+  protect,
+  requireAdmin,
+  orderController.updateOrderStatus
+);
 
 // Get orders by payment status (admin only)
-router.get("/admin/payment-status/:paymentStatus", protect, requireAdmin, orderController.getOrdersByPaymentStatus);
+router.get(
+  "/admin/payment-status/:paymentStatus",
+  protect,
+  requireAdmin,
+  orderController.getOrdersByPaymentStatus
+);
 
 // Get order statistics (admin only)
-router.get("/admin/statistics", protect, requireAdmin, orderController.getOrderStatistics);
-
+router.get(
+  "/admin/statistics",
+  protect,
+  requireAdmin,
+  orderController.getOrderStatisticsAdmin
+);
 
 module.exports = router;
