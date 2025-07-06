@@ -31,11 +31,8 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.use("/api/admin", adminRoutes);
+app.use("/", adminRoutes);
 
-app.get("/", (req, res) => {
-  res.send("Admin-service Backend is running 🚀");
-});
 
 // Global error handler
 app.use((err, req, res, next) => {
