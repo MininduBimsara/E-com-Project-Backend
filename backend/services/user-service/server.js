@@ -12,6 +12,7 @@ const {
 } = require("./middlewares/securityMiddleware");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
+const googleAuthRoutes = require("./routes/googleAuthRoutes");
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.get("/health", (req, res) => {
 
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
+app.use("/auth", googleAuthRoutes);
 
 app.get("/", (req, res) => {
   res.send("User-service Backend is running 🚀");

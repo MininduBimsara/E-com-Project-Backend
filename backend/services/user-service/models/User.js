@@ -14,7 +14,9 @@ const userSchema = new Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() {
+      return !this.googleId; // Password is only required if not a Google user
+    },
   },
   role: {
     type: String,
