@@ -30,12 +30,35 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from the public directory with CORS headers
+app.use(
+  "/product-images",
+  (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    next();
+  },
+  express.static(path.join(__dirname, "public", "product-images"))
+);
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
     service: "Product Service",
     status: "healthy",
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Test image serving endpoint
+app.get("/test-image", (req, res) => {
+  const imagePath = path.join(__dirname, "public", "product-images");
+  const files = fs.readdirSync(imagePath);
+  res.json({
+    message: "Image serving test",
+    availableImages: files,
+    imagePath: imagePath,
   });
 });
 
