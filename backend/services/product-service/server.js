@@ -79,14 +79,7 @@ mongoose
     process.exit(1);
   });
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("Product service error:", err);
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-  });
-});
+
 
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {

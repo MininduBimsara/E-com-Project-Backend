@@ -4,7 +4,7 @@ const {
   getCurrentUser,
   logout,
 } = require("../controllers/googleAuthController");
-const { authenticateToken } = require("../middlewares/authMiddleware");
+const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ const router = express.Router();
 router.post("/google", googleAuth);
 
 // Get current authenticated user
-router.get("/me", authenticateToken, getCurrentUser);
+router.get("/me", protect, getCurrentUser);
 
 // Logout endpoint
 router.post("/logout", logout);

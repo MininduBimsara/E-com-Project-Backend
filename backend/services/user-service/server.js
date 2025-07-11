@@ -50,20 +50,12 @@ app.get("/health", (req, res) => {
 
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
-app.use("/auth", googleAuthRoutes);
+app.use("/google", googleAuthRoutes);
 
 app.get("/", (req, res) => {
   res.send("User-service Backend is running 🚀");
 });
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("User service error:", err);
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-  });
-});
 
 // Initialize database and start server
 const startServer = async () => {
