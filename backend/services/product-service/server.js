@@ -30,17 +30,14 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the public directory with CORS headers
-app.use(
-  "/product-images",
-  (req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    next();
-  },
-  express.static(path.join(__dirname, "public", "product-images"))
-);
+// FIXED: Serve static files for product images
+const uploadPath = path.join(__dirname, "public/product-images");
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Serve static files from the product-images directory
+app.use("/product-images", express.static(uploadPath));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -48,17 +45,6 @@ app.get("/health", (req, res) => {
     service: "Product Service",
     status: "healthy",
     timestamp: new Date().toISOString(),
-  });
-});
-
-// Test image serving endpoint
-app.get("/test-image", (req, res) => {
-  const imagePath = path.join(__dirname, "public", "product-images");
-  const files = fs.readdirSync(imagePath);
-  res.json({
-    message: "Image serving test",
-    availableImages: files,
-    imagePath: imagePath,
   });
 });
 
@@ -79,12 +65,20 @@ mongoose
     process.exit(1);
   });
 
-
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Product service error:", err);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+});
 
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
   console.log(`🚀 Product Service running on port ${PORT}`);
   console.log(`🌐 API URL: http://localhost:${PORT}/api/products`);
+  console.log(`🖼️  Images URL: http://localhost:${PORT}/product-images`);
 });
 
 module.exports = app;

@@ -50,6 +50,16 @@ app.use(
 );
 
 app.use(
+  "/product-images",
+  proxy("http://localhost:4001", {
+    proxyErrorHandler: (err, res, next) => {
+      console.error("Product images proxy error:", err);
+      res.status(503).json({ message: "Product images service unavailable" });
+    },
+  })
+);
+
+app.use(
   "/api/products",
   proxy("http://localhost:4001", {
     proxyErrorHandler: (err, res, next) => {

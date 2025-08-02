@@ -56,7 +56,6 @@ app.get("/", (req, res) => {
   res.send("User-service Backend is running 🚀");
 });
 
-
 // Initialize database and start server
 const startServer = async () => {
   try {
