@@ -30,6 +30,15 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// FIXED: Serve static files for product images
+const uploadPath = path.join(__dirname, "public/product-images");
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Serve static files from the product-images directory
+app.use("/product-images", express.static(uploadPath));
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -69,6 +78,7 @@ const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
   console.log(`🚀 Product Service running on port ${PORT}`);
   console.log(`🌐 API URL: http://localhost:${PORT}/api/products`);
+  console.log(`🖼️  Images URL: http://localhost:${PORT}/product-images`);
 });
 
 module.exports = app;

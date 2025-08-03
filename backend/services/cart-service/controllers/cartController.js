@@ -45,7 +45,15 @@ class CartController {
     try {
       const { userId } = req.params;
       const { productId, quantity = 1 } = req.body;
-      const token = req.token;
+
+      // Get token from middleware, cookie, or Authorization header
+      const token =
+        req.token ||
+        req.cookies.token ||
+        (req.headers.authorization &&
+        req.headers.authorization.startsWith("Bearer ")
+          ? req.headers.authorization.split(" ")[1]
+          : null);
 
       if (!productId) {
         return res.status(400).json({
@@ -65,7 +73,7 @@ class CartController {
         userId,
         productId,
         quantity,
-        token
+        token // always pass the token
       );
 
       res.status(200).json({

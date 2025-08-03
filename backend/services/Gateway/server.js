@@ -18,6 +18,18 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Helper to forward cookies and auth headers
+const forwardAuth = {
+  proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+    if (srcReq.headers.cookie) {
+      proxyReqOpts.headers["cookie"] = srcReq.headers.cookie;
+    }
+    if (srcReq.headers.authorization) {
+      proxyReqOpts.headers["authorization"] = srcReq.headers.authorization;
+    }
+    return proxyReqOpts;
+  },
+};
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -31,6 +43,7 @@ app.get("/health", (req, res) => {
 app.use(
   "/api/auth",
   proxy("http://localhost:4000", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("User service (auth) proxy error:", err);
       res.status(503).json({ message: "User service unavailable" });
@@ -38,10 +51,10 @@ app.use(
   })
 );
 
-// Proxy routes with error handling
 app.use(
   "/api/users",
   proxy("http://localhost:4000", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("User service proxy error:", err);
       res.status(503).json({ message: "User service unavailable" });
@@ -50,8 +63,20 @@ app.use(
 );
 
 app.use(
+  "/product-images",
+  proxy("http://localhost:4001", {
+    ...forwardAuth,
+    proxyErrorHandler: (err, res, next) => {
+      console.error("Product images proxy error:", err);
+      res.status(503).json({ message: "Product images service unavailable" });
+    },
+  })
+);
+
+app.use(
   "/api/products",
   proxy("http://localhost:4001", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("Product service proxy error:", err);
       res.status(503).json({ message: "Product service unavailable" });
@@ -62,6 +87,7 @@ app.use(
 app.use(
   "/api/cart",
   proxy("http://localhost:4002", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("Cart service proxy error:", err);
       res.status(503).json({ message: "Cart service unavailable" });
@@ -72,6 +98,7 @@ app.use(
 app.use(
   "/api/orders",
   proxy("http://localhost:4003", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("Order service proxy error:", err);
       res.status(503).json({ message: "Order service unavailable" });
@@ -82,6 +109,7 @@ app.use(
 app.use(
   "/api/payments",
   proxy("http://localhost:4004", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("Payment service proxy error:", err);
       res.status(503).json({ message: "Payment service unavailable" });
@@ -92,6 +120,7 @@ app.use(
 app.use(
   "/api/admin",
   proxy("http://localhost:4005", {
+    ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("Admin service proxy error:", err);
       res.status(503).json({ message: "Admin service unavailable" });

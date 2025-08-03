@@ -22,7 +22,7 @@ class CartService {
         }
 
         const response = await axios.get(
-          `${this.productServiceUrl}/api/products/details/${productId}`,
+          `${this.productServiceUrl}/details/${productId}`, // <-- remove /api/products
           {
             headers,
             timeout: 5000,
