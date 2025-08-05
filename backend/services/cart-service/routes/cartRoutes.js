@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const cartController = require("../controllers/cartController");
 const {
-  protect,
+  verifyAuth,
   optionalAuth,
   requireAdmin,
 } = require("../middleware/authMiddleware");
@@ -29,13 +29,13 @@ router.delete(
 router.delete("/:userId/clear", optionalAuth, cartController.clearCart);
 router.put("/:userId/shipping", optionalAuth, cartController.updateShipping);
 
-// Protected routes (login required)
-router.post("/:userId/validate", protect, cartController.validateCart);
+// verifyAuthed routes (login required)
+router.post("/:userId/validate", verifyAuth, cartController.validateCart);
 
 // Admin routes
 router.get(
   "/admin/statistics",
-  protect,
+  verifyAuth,
   requireAdmin,
   cartController.getCartStatistics
 );

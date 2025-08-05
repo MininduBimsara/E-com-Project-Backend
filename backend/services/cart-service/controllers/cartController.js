@@ -41,10 +41,16 @@ class CartController {
     }
   }
 
+  // Add debugging to cartController.js addToCart method
   async addToCart(req, res) {
     try {
       const { userId } = req.params;
       const { productId, quantity = 1 } = req.body;
+
+      console.log("=== CART CONTROLLER DEBUG ===");
+      console.log("Headers received:", JSON.stringify(req.headers, null, 2));
+      console.log("Cookies received:", req.cookies);
+      console.log("req.token from middleware:", req.token);
 
       // Get token from middleware, cookie, or Authorization header
       const token =
@@ -54,6 +60,12 @@ class CartController {
         req.headers.authorization.startsWith("Bearer ")
           ? req.headers.authorization.split(" ")[1]
           : null);
+
+      console.log(
+        "Final extracted token:",
+        token ? `${token.substring(0, 20)}...` : "NULL"
+      );
+      console.log("==============================");
 
       if (!productId) {
         return res.status(400).json({
@@ -73,7 +85,7 @@ class CartController {
         userId,
         productId,
         quantity,
-        token // always pass the token
+        token
       );
 
       res.status(200).json({

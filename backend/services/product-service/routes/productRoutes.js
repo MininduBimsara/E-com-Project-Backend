@@ -94,7 +94,7 @@ router.delete("/:id", verifyAuth, productController.deleteProduct);
 router.get("/", optionalAuth, productController.getProducts);
 
 // Get product by ID (should be last to prevent conflicts)
-router.get("/details/:id", verifyAuth, productController.getProductById);
+router.get("/details/:id", optionalAuth, productController.getProductById);
 
 // Serve static product images with CORS headers
 router.use(
