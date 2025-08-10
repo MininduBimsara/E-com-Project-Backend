@@ -4,7 +4,20 @@ const orderService = require("../services/orderService");
 async function createOrder(req, res) {
   try {
     const token = req.token;
-    const order = await orderService.createOrder(req.body, token);
+    const userId = req.user?.id || req.body.userId;
+
+    console.log("TOKEN IN ORDER CONTROLLER:", token);
+    console.log("USER ID IN ORDER CONTROLLER:", userId);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const order = await orderService.createOrder(req.body, userId, token);
+
     res.status(201).json({
       success: true,
       message: "Order created successfully",
@@ -26,6 +39,7 @@ async function createOrder(req, res) {
     });
   }
 }
+
 
 // Get order by ID
 async function getOrderById(req, res) {
