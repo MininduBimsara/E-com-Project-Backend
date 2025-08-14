@@ -81,7 +81,8 @@ const generateUserResponse = (user) => ({
 });
 
 const formatUserResponse = (user) => ({
-  id: user._id,
+  id: user._id?.toString() || user.id || "",
+  _id: user._id?.toString() || user.id || "",
   username: user.username,
   email: user.email,
   role: user.role,

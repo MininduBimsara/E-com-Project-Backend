@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const cartController = require("../controllers/cartController");
+const debugMiddleware = require("../middleware/debugMiddleware");
 const {
   verifyAuth,
   optionalAuth,
   requireAdmin,
 } = require("../middleware/authMiddleware");
 
+// Add debug middleware to all routes
+router.use(debugMiddleware);
 router.use(express.json());
 
 // Public routes (no auth needed)
