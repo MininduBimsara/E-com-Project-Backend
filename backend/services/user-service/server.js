@@ -8,7 +8,7 @@ const { validateEnvironment } = require("./config/env");
 const { connectDatabase, createIndexes } = require("./config/database");
 const {
   securityHeaders,
-  generalLimiter,
+  // generalLimiter,
 } = require("./middlewares/securityMiddleware");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -23,7 +23,7 @@ const app = express();
 
 // Security middleware
 app.use(securityHeaders);
-app.use(generalLimiter);
+// app.use(generalLimiter);
 
 // CORS configuration
 const corsOptions = {

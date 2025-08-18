@@ -1,6 +1,7 @@
 // backend/services/user-service/Services/authService.js
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 
 const UserRepository = require("../Repository/UserRepository");
 const AuthRepository = require("../Repository/AuthRepository");
@@ -8,7 +9,6 @@ const AuthRepository = require("../Repository/AuthRepository");
 const registerUser = async (userData, profileImageFilename = null) => {
   const { username, email, password, role } = userData;
 
-  // add role validation if needed || !role
   if (!username || !email || !password) {
     throw new Error("All fields are required");
   }
@@ -20,13 +20,114 @@ const registerUser = async (userData, profileImageFilename = null) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await UserRepository.create({
-    username,
-    email,
-    password: hashedPassword,
-    role: role || "customer", // Default to customer if no role provided
-    profileImage: profileImageFilename,
-  });
+  // Create user in User DB
+  let user;
+  try {
+    user = await UserRepository.create({
+      username,
+      email,
+      password: hashedPassword,
+      role: role || "customer",
+      profileImage: profileImageFilename,
+    });
+
+    console.log("✅ [authService.registerUser] User created:", {
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error(
+      "❌ [authService.registerUser] Failed to create user:",
+      error.message
+    );
+    throw new Error("Failed to create user account");
+  }
+
+  // If this is an admin, also create record in Admin Service
+  if (user.role === "admin") {
+    try {
+      const adminServiceUrl =
+        process.env.ADMIN_SERVICE_URL || "http://localhost:4006";
+      const adminEndpoint = `${adminServiceUrl}/api/admin/register`;
+
+      console.log(
+        "🔄 [authService.registerUser] Creating admin record at:",
+        adminEndpoint
+      );
+
+      const adminPayload = {
+        userId: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        password: password, // Send plain password for Admin Service to hash
+      };
+
+      console.log("📤 [authService.registerUser] Admin payload:", {
+        userId: adminPayload.userId,
+        username: adminPayload.username,
+        email: adminPayload.email,
+        password: "[REDACTED]",
+      });
+
+      const adminResponse = await axios.post(adminEndpoint, adminPayload, {
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "User-Service/1.0",
+        },
+        timeout: 10000, // 10 second timeout
+      });
+
+      console.log(
+        "✅ [authService.registerUser] Admin record created successfully:",
+        {
+          status: adminResponse.status,
+          message: adminResponse.data?.message,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "❌ [authService.registerUser] Failed to create admin in Admin Service:",
+        {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          code: error.code,
+        }
+      );
+
+      // Rollback user creation if admin creation fails
+      try {
+        await UserRepository.deleteById(user._id);
+        console.log("🔄 [authService.registerUser] User rollback completed");
+      } catch (rollbackError) {
+        console.error(
+          "💥 [authService.registerUser] Rollback failed:",
+          rollbackError.message
+        );
+      }
+
+      // Provide specific error messages based on the type of failure
+      if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+        throw new Error(
+          "Admin service is unavailable. Please try again later."
+        );
+      } else if (error.response?.status === 400) {
+        throw new Error(
+          `Admin creation failed: ${
+            error.response.data?.message || "Invalid data"
+          }`
+        );
+      } else if (error.response?.status === 500) {
+        throw new Error(
+          "Admin service encountered an error. Please try again."
+        );
+      } else {
+        throw new Error("Failed to create admin record. Please try again.");
+      }
+    }
+  }
 
   const token = generateToken(user._id, user.role);
 
@@ -47,7 +148,7 @@ const loginUser = async (email, password) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new Error("Invalid credentials");
 
-  console.log("🔍 [authService.loginUser] User found:", {
+  console.log("🔐 [authService.loginUser] User found:", {
     id: user._id,
     username: user.username,
     email: user.email,
@@ -90,7 +191,7 @@ const generateUserResponse = (user) => {
   };
 
   console.log(
-    "🔍 [authService.generateUserResponse] Generated response:",
+    "🔄 [authService.generateUserResponse] Generated response:",
     userResponse
   );
   return userResponse;
@@ -107,7 +208,7 @@ const formatUserResponse = (user) => {
   };
 
   console.log(
-    "🔍 [authService.formatUserResponse] Formatted user:",
+    "📝 [authService.formatUserResponse] Formatted user:",
     formattedUser
   );
   return formattedUser;
