@@ -233,7 +233,7 @@ app.use(
 
 app.use(
   "/api/admin",
-  proxy("http://localhost:4005", {
+  proxy("http://localhost:4006", {
     ...forwardAuth,
     proxyErrorHandler: (err, res, next) => {
       console.error("❌ [GATEWAY] Admin service proxy error:", err.message);
