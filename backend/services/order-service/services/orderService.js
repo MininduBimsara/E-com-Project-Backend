@@ -80,14 +80,13 @@ class OrderService {
     }
   }
 
-  /**
-   * Validate cart items before creating order
-   */
+  // ✅ FIXED VERSION OF validateCartForOrder METHOD
   async validateCartForOrder(userId, token) {
     try {
       const headers = {};
       if (token) {
-        headers.Authorization = `Bearer ${token}`;
+        // ✅ Fix: Pass token as Cookie header instead of Bearer
+        headers.Cookie = `token=${token}`;
       }
 
       const response = await axios.post(
@@ -104,8 +103,8 @@ class OrderService {
   /**
    * Create a new order
    */
-  async createOrder(orderData, token) {
-    const { userId, shippingAddress, paymentId } = orderData;
+  async createOrder(orderData, userId, token) {
+    const { shippingAddress, paymentId } = orderData;
 
     if (!userId || !shippingAddress) {
       throw new Error("User ID and shipping address are required");

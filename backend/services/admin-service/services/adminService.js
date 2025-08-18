@@ -1,3 +1,4 @@
+// backend/services/admin-service/services/adminService.js
 const Admin = require("../models/Admin");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
@@ -37,14 +38,17 @@ const login = async (email, password) => {
     return {
       admin: {
         id: admin._id,
+        _id: admin._id,
         username: admin.username,
         email: admin.email,
         role: admin.role,
+        status: admin.status,
         lastLoginAt: admin.lastLoginAt,
       },
       token,
     };
   } catch (error) {
+    console.error("Login service error:", error);
     throw error;
   }
 };
@@ -56,175 +60,441 @@ const getProfile = async (adminId) => {
     if (!admin) {
       throw new Error("Admin not found");
     }
-    return admin;
+
+    return {
+      id: admin._id,
+      _id: admin._id,
+      username: admin.username,
+      email: admin.email,
+      role: admin.role,
+      status: admin.status,
+      lastLoginAt: admin.lastLoginAt,
+    };
   } catch (error) {
+    console.error("Get profile service error:", error);
     throw error;
   }
 };
 
-// Get dashboard statistics
+// Helper function to make service calls with proper error handling
+const makeServiceCall = async (url, serviceName, timeout = 5000) => {
+  try {
+    console.log(`🔍 Calling ${serviceName}: ${url}`);
+
+    const response = await axios.get(url, {
+      timeout,
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Admin-Service/1.0",
+      },
+    });
+
+    console.log(`✅ ${serviceName} responded:`, response.status);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error(`❌ ${serviceName} error:`, {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: url,
+    });
+
+    return {
+      success: false,
+      error: error.message,
+      code: error.code,
+      status: error.response?.status,
+    };
+  }
+};
+
+// Get dashboard statistics with detailed logging
 const getDashboardStats = async () => {
+  console.log("📊 Fetching dashboard statistics...");
+
   const stats = {
     users: 0,
     products: 0,
     orders: 0,
     revenue: 0,
+    payments: 0,
+    cartItems: 0,
     status: {
-      userService: "unknown",
-      productService: "unknown",
-      orderService: "unknown",
+      userService: "checking",
+      productService: "checking",
+      orderService: "checking",
+      cartService: "checking",
+      paymentService: "checking",
     },
   };
 
+  // Service URLs with fallbacks
+  const userServiceUrl =
+    process.env.USER_SERVICE_URL || "http://localhost:4000";
+  const productServiceUrl =
+    process.env.PRODUCT_SERVICE_URL || "http://localhost:4001";
+  const cartServiceUrl =
+    process.env.CART_SERVICE_URL || "http://localhost:4002";
+  const orderServiceUrl =
+    process.env.ORDER_SERVICE_URL || "http://localhost:4003";
+  const paymentServiceUrl =
+    process.env.PAYMENT_SERVICE_URL || "http://localhost:4004";
+
+  console.log("🔗 Service URLs:", {
+    userService: userServiceUrl,
+    productService: productServiceUrl,
+    cartService: cartServiceUrl,
+    orderService: orderServiceUrl,
+    paymentService: paymentServiceUrl,
+  });
+
   // Get users count
-  try {
-    const userResponse = await axios.get(
-      `${process.env.USER_SERVICE_URL}/api/users/count`,
-      {
-        timeout: 5000,
-      }
-    );
-    stats.users = userResponse.data.count || 0;
+  const userService = await makeServiceCall(
+    `${userServiceUrl}/api/users/count`,
+    "User Service"
+  );
+
+  if (userService.success) {
+    stats.users = userService.data.count || userService.data.data?.count || 0;
     stats.status.userService = "available";
-  } catch (error) {
-    console.log("User service unavailable:", error.message);
+  } else {
     stats.status.userService = "unavailable";
+    console.log(`⚠️ User service unavailable: ${userService.error}`);
   }
 
   // Get products count
-  try {
-    const productResponse = await axios.get(
-      `${process.env.PRODUCT_SERVICE_URL}/api/products/count`,
-      {
-        timeout: 5000,
-      }
-    );
-    stats.products = productResponse.data.count || 0;
+  const productService = await makeServiceCall(
+    `${productServiceUrl}/api/products/count`,
+    "Product Service"
+  );
+
+  if (productService.success) {
+    stats.products =
+      productService.data.count || productService.data.data?.count || 0;
     stats.status.productService = "available";
-  } catch (error) {
-    console.log("Product service unavailable:", error.message);
+  } else {
     stats.status.productService = "unavailable";
+    console.log(`⚠️ Product service unavailable: ${productService.error}`);
+  }
+
+  // Get cart items count
+  const cartService = await makeServiceCall(
+    `${cartServiceUrl}/api/cart/stats`,
+    "Cart Service"
+  );
+
+  if (cartService.success) {
+    const cartData = cartService.data.data || cartService.data;
+    stats.cartItems = cartData.totalItems || cartData.totalCartItems || 0;
+    stats.status.cartService = "available";
+  } else {
+    stats.status.cartService = "unavailable";
+    console.log(`⚠️ Cart service unavailable: ${cartService.error}`);
   }
 
   // Get orders stats
-  try {
-    const orderResponse = await axios.get(
-      `${process.env.ORDER_SERVICE_URL}/api/orders/stats`,
-      {
-        timeout: 5000,
-      }
-    );
-    if (orderResponse.data.success) {
-      stats.orders = orderResponse.data.data.totalOrders || 0;
-      stats.revenue = orderResponse.data.data.totalRevenue || 0;
-    }
+  const orderService = await makeServiceCall(
+    `${orderServiceUrl}/api/orders/stats`,
+    "Order Service"
+  );
+
+  if (orderService.success) {
+    const orderData = orderService.data.data || orderService.data;
+    stats.orders = orderData.totalOrders || 0;
+    stats.revenue = orderData.totalRevenue || 0;
     stats.status.orderService = "available";
-  } catch (error) {
-    console.log("Order service unavailable:", error.message);
+  } else {
     stats.status.orderService = "unavailable";
+    console.log(`⚠️ Order service unavailable: ${orderService.error}`);
   }
 
+  // Get payment stats
+  const paymentService = await makeServiceCall(
+    `${paymentServiceUrl}/api/payments/stats`,
+    "Payment Service"
+  );
+
+  if (paymentService.success) {
+    const paymentData = paymentService.data.data || paymentService.data;
+    stats.payments =
+      paymentData.totalPayments || paymentData.completedPayments || 0;
+    stats.status.paymentService = "available";
+  } else {
+    stats.status.paymentService = "unavailable";
+    console.log(`⚠️ Payment service unavailable: ${paymentService.error}`);
+  }
+
+  console.log("📈 Final stats:", stats);
   return stats;
 };
 
-// Get all users from user service
+// Get all users with service availability check
 const getAllUsers = async (page = 1, limit = 10, search = "") => {
+  const userServiceUrl =
+    process.env.USER_SERVICE_URL || "http://localhost:4000";
+
   try {
-    const response = await axios.get(
-      `${process.env.USER_SERVICE_URL}/api/users`,
-      {
-        params: { page, limit, search },
-        timeout: 10000,
-      }
-    );
-    return response.data;
-  } catch (error) {
-    if (error.code === "ECONNREFUSED") {
-      throw new Error("User service is unavailable");
+    console.log(`👥 Fetching users: ${userServiceUrl}/api/users`);
+
+    const response = await axios.get(`${userServiceUrl}/api/users`, {
+      params: { page, limit, search },
+      timeout: 10000,
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Admin-Service/1.0",
+      },
+    });
+
+    console.log(`✅ Users response status: ${response.status}`);
+
+    // Handle different response formats
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else if (response.data.data) {
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: response.data.length,
+          pages: Math.ceil(response.data.length / limit),
+        },
+      };
+    } else {
+      // Return empty data structure if service has no users
+      return {
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0,
+        },
+      };
     }
-    throw new Error(error.response?.data?.message || "Failed to fetch users");
+  } catch (error) {
+    console.error("❌ Get users service error:", {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: `${userServiceUrl}/api/users`,
+    });
+
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+      throw new Error(
+        "User service is unavailable. Please start the user service on port 4000."
+      );
+    }
+
+    throw new Error(`Failed to fetch users: ${error.message}`);
   }
 };
 
-// Get all products from product service
+// Get all products with service availability check
 const getAllProducts = async (
   page = 1,
   limit = 10,
   search = "",
   category = ""
 ) => {
+  const productServiceUrl =
+    process.env.PRODUCT_SERVICE_URL || "http://localhost:4001";
+
   try {
-    const response = await axios.get(
-      `${process.env.PRODUCT_SERVICE_URL}/api/products`,
-      {
-        params: { page, limit, search, category },
-        timeout: 10000,
-      }
-    );
-    return response.data;
-  } catch (error) {
-    if (error.code === "ECONNREFUSED") {
-      throw new Error("Product service is unavailable");
+    console.log(`📦 Fetching products: ${productServiceUrl}/api/products`);
+
+    const response = await axios.get(`${productServiceUrl}/api/products`, {
+      params: { page, limit, search, category },
+      timeout: 10000,
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Admin-Service/1.0",
+      },
+    });
+
+    console.log(`✅ Products response status: ${response.status}`);
+
+    // Handle different response formats
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else if (response.data.data) {
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: response.data.length,
+          pages: Math.ceil(response.data.length / limit),
+        },
+      };
+    } else {
+      return {
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0,
+        },
+      };
     }
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch products"
-    );
+  } catch (error) {
+    console.error("❌ Get products service error:", {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: `${productServiceUrl}/api/products`,
+    });
+
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+      throw new Error(
+        "Product service is unavailable. Please start the product service on port 4001."
+      );
+    }
+
+    throw new Error(`Failed to fetch products: ${error.message}`);
   }
 };
 
-// Get all orders from order service
+// Get all orders with service availability check
 const getAllOrders = async (page = 1, limit = 10, status = "") => {
+  const orderServiceUrl =
+    process.env.ORDER_SERVICE_URL || "http://localhost:4003";
+
   try {
-    const response = await axios.get(
-      `${process.env.ORDER_SERVICE_URL}/api/orders`,
-      {
-        params: { page, limit, status },
-        timeout: 10000,
-      }
-    );
-    return response.data;
-  } catch (error) {
-    if (error.code === "ECONNREFUSED") {
-      throw new Error("Order service is unavailable");
+    console.log(`🛒 Fetching orders: ${orderServiceUrl}/api/orders`);
+
+    const response = await axios.get(`${orderServiceUrl}/api/orders`, {
+      params: { page, limit, status },
+      timeout: 10000,
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Admin-Service/1.0",
+      },
+    });
+
+    console.log(`✅ Orders response status: ${response.status}`);
+
+    // Handle different response formats
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else if (response.data.data) {
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: response.data.length,
+          pages: Math.ceil(response.data.length / limit),
+        },
+      };
+    } else {
+      return {
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0,
+        },
+      };
     }
-    throw new Error(error.response?.data?.message || "Failed to fetch orders");
+  } catch (error) {
+    console.error("❌ Get orders service error:", {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: `${orderServiceUrl}/api/orders`,
+    });
+
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+      throw new Error(
+        "Order service is unavailable. Please start the order service on port 4003."
+      );
+    }
+
+    throw new Error(`Failed to fetch orders: ${error.message}`);
   }
 };
 
 // Update order status
 const updateOrderStatus = async (orderId, status) => {
+  const orderServiceUrl =
+    process.env.ORDER_SERVICE_URL || "http://localhost:4003";
+
   try {
     const response = await axios.put(
-      `${process.env.ORDER_SERVICE_URL}/api/orders/${orderId}/status`,
+      `${orderServiceUrl}/api/orders/${orderId}/status`,
       { status },
-      { timeout: 10000 }
+      {
+        timeout: 10000,
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Admin-Service/1.0",
+        },
+      }
     );
-    return response.data;
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else if (response.data.data) {
+      return response.data.data;
+    } else {
+      return response.data;
+    }
   } catch (error) {
-    if (error.code === "ECONNREFUSED") {
+    console.error("❌ Update order status error:", error);
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
       throw new Error("Order service is unavailable");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to update order status"
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to update order status"
     );
   }
 };
 
 // Update user status
 const updateUserStatus = async (userId, status) => {
+  const userServiceUrl =
+    process.env.USER_SERVICE_URL || "http://localhost:4000";
+
   try {
     const response = await axios.put(
-      `${process.env.USER_SERVICE_URL}/api/users/${userId}/status`,
+      `${userServiceUrl}/api/users/${userId}/status`,
       { status },
-      { timeout: 10000 }
+      {
+        timeout: 10000,
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Admin-Service/1.0",
+        },
+      }
     );
-    return response.data;
+
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    } else if (response.data.data) {
+      return response.data.data;
+    } else {
+      return response.data;
+    }
   } catch (error) {
-    if (error.code === "ECONNREFUSED") {
+    console.error("❌ Update user status error:", error);
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
       throw new Error("User service is unavailable");
     }
     throw new Error(
-      error.response?.data?.message || "Failed to update user status"
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to update user status"
     );
   }
 };

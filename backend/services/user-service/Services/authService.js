@@ -1,3 +1,4 @@
+// backend/services/user-service/Services/authService.js
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -23,7 +24,7 @@ const registerUser = async (userData, profileImageFilename = null) => {
     username,
     email,
     password: hashedPassword,
-    role,
+    role: role || "customer", // Default to customer if no role provided
     profileImage: profileImageFilename,
   });
 
@@ -45,6 +46,13 @@ const loginUser = async (email, password) => {
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new Error("Invalid credentials");
+
+  console.log("🔍 [authService.loginUser] User found:", {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+  });
 
   return generateUserResponse(user);
 };
@@ -75,18 +83,35 @@ const generateToken = (userId, role) => {
   });
 };
 
-const generateUserResponse = (user) => ({
-  token: generateToken(user._id, user.role),
-  user: formatUserResponse(user),
-});
+const generateUserResponse = (user) => {
+  const userResponse = {
+    token: generateToken(user._id, user.role),
+    user: formatUserResponse(user),
+  };
 
-const formatUserResponse = (user) => ({
-  id: user._id,
-  username: user.username,
-  email: user.email,
-  role: user.role,
-  profileImage: user.profileImage,
-});
+  console.log(
+    "🔍 [authService.generateUserResponse] Generated response:",
+    userResponse
+  );
+  return userResponse;
+};
+
+const formatUserResponse = (user) => {
+  const formattedUser = {
+    id: user._id,
+    _id: user._id, // Keep both for compatibility
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    profileImage: user.profileImage,
+  };
+
+  console.log(
+    "🔍 [authService.formatUserResponse] Formatted user:",
+    formattedUser
+  );
+  return formattedUser;
+};
 
 const getUserData = (user) => formatUserResponse(user);
 

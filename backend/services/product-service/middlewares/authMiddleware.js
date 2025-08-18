@@ -2,24 +2,47 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
 /**
- * Middleware to verify user authentication by calling the user service
+ * Extract token from Authorization header or Cookie header
  * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * @returns {string|null} token
  */
-const verifyAuth = async (req, res, next) => {
+const extractToken = (req) => {
+  let token = null;
+
+  // From Authorization header: Bearer <token>
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  // From Cookie header: token=xxx
+  if (!token && req.headers.cookie) {
+    const cookieHeader = req.headers.cookie;
+    const tokenMatch = cookieHeader
+      .split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith("token="));
+    if (tokenMatch) {
+      token = tokenMatch.split("=")[1];
+    }
+  }
+
+  return token;
+};
+
+/**
+ * Middleware to strictly verify authentication (required)
+ */
+const verifyAuth = (req, res, next) => {
+  const token = extractToken(req);
+
+  if (!token) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
   try {
-    let token;
-
-    // Check cookie only
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    if (!token) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     req.token = token;
@@ -30,36 +53,33 @@ const verifyAuth = async (req, res, next) => {
 };
 
 /**
- * Optional authentication middleware - doesn't block if no token
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * Middleware to optionally attach user info if token exists
  */
-const optionalAuth = async (req, res, next) => {
-  try {
-    let token;
+const optionalAuth = (req, res, next) => {
+  const token = extractToken(req);
 
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    if (token) {
+  if (token) {
+    try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = decoded;
       req.token = token;
-    } else {
+    } catch (err) {
+      console.warn("Invalid token in optionalAuth:", err.message);
       req.user = null;
       req.token = null;
     }
-    next();
-  } catch (err) {
+  } else {
     req.user = null;
     req.token = null;
-    next();
   }
+console.log("JWT_SECRET loaded in optionalAuth:", process.env.JWT_SECRET);
+
+  next();
 };
 
-// Admin only
+/**
+ * Middleware to ensure admin access
+ */
 const requireAdmin = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
     next();
@@ -68,7 +88,9 @@ const requireAdmin = (req, res, next) => {
   }
 };
 
-// Verify user exists in user service
+/**
+ * Middleware to verify the user exists in user service (optional)
+ */
 const verifyUser = async (req, res, next) => {
   try {
     if (!req.user) {

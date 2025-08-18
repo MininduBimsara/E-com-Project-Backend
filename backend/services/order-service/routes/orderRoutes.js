@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/orderController");
 const {
-  protect,
+  verifyAuth,
   optionalAuth,
   requireAdmin,
 } = require("../middleware/authMiddleware");
@@ -12,11 +12,11 @@ router.use(express.json());
 // Order creation (optional auth for guest checkout)
 router.post("/", optionalAuth, orderController.createOrder);
 
-// Protected routes (login required)
-router.get("/:orderId", protect, orderController.getOrderById);
-router.get("/number/:orderNumber", protect, orderController.getOrderByNumber);
-router.get("/user/:userId", protect, orderController.getUserOrders);
-router.put("/:orderId/cancel", protect, orderController.cancelOrder);
+// verifyAuthed routes (login required)
+router.get("/:orderId", verifyAuth, orderController.getOrderById);
+router.get("/number/:orderNumber", verifyAuth, orderController.getOrderByNumber);
+router.get("/user/:userId", verifyAuth, orderController.getUserOrders);
+router.put("/:orderId/cancel", verifyAuth, orderController.cancelOrder);
 
 // ===============================
 // PAYMENT SERVICE INTEGRATION ROUTES
@@ -38,7 +38,7 @@ router.put(
 // Update order status (admin only)
 router.put(
   "/admin/:orderId/status",
-  protect,
+  verifyAuth,
   requireAdmin,
   orderController.updateOrderStatus
 );
@@ -46,7 +46,7 @@ router.put(
 // Get orders by payment status (admin only)
 router.get(
   "/admin/payment-status/:paymentStatus",
-  protect,
+  verifyAuth,
   requireAdmin,
   orderController.getOrdersByPaymentStatus
 );
@@ -54,7 +54,7 @@ router.get(
 // Get order statistics (admin only)
 router.get(
   "/admin/statistics",
-  protect,
+  verifyAuth,
   requireAdmin,
   orderController.getOrderStatisticsAdmin
 );

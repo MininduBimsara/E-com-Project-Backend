@@ -1,3 +1,5 @@
+// Replace the entire cartService.js with this fixed version
+
 const axios = require("axios");
 const cartRepository = require("../repositories/cartRepository");
 
@@ -14,32 +16,58 @@ class CartService {
    * Get product details from product service with retry logic
    */
   async getProductDetails(productId, token = null, retries = 3) {
+    console.log("=== CART SERVICE DEBUG ===");
+    console.log("Product ID:", productId);
+    console.log(
+      "Token received:",
+      token ? `${token.substring(0, 20)}...` : "NULL"
+    );
+
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const headers = {};
         if (token) {
           headers.Cookie = `token=${token}`;
+          console.log("Setting Cookie header for product service");
+        } else {
+          console.log("WARNING: No token to forward to product service!");
         }
 
-        const response = await axios.get(
-          `${this.productServiceUrl}/details/${productId}`, // <-- remove /api/products
-          {
-            headers,
-            timeout: 5000,
-          }
-        );
+        const url = `${this.productServiceUrl}/details/${productId}`;
+        console.log("Making request to:", url);
+        console.log("Request headers:", headers);
+
+        const response = await axios.get(url, {
+          headers,
+          timeout: 5000,
+        });
+
+        console.log("SUCCESS: Product details retrieved");
+        console.log("===========================");
         return response.data;
       } catch (error) {
+        console.log(`Attempt ${attempt} failed:`);
+        console.log("Status:", error.response?.status);
+        console.log("Status Text:", error.response?.statusText);
+        console.log("Error Data:", error.response?.data);
+        console.log(
+          "Full URL called:",
+          `${this.productServiceUrl}/details/${productId}`
+        );
+
         if (attempt === retries) {
+          console.log("===========================");
           if (error.response?.status === 404) {
             throw new Error("Product not found");
+          }
+          if (error.response?.status === 401) {
+            throw new Error("Authentication required to fetch product details");
           }
           if (error.response?.status === 403) {
             throw new Error("Product not available");
           }
           throw new Error(`Failed to fetch product details: ${error.message}`);
         }
-        // Wait before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       }
     }
@@ -51,7 +79,7 @@ class CartService {
   async reserveProductStock(productId, quantity, token) {
     try {
       const response = await axios.patch(
-        `${this.productServiceUrl}/api/products/${productId}/stock`,
+        `${this.productServiceUrl}/${productId}/stock`, // Correct URL without /api/products
         { quantity: -quantity }, // Negative to reserve
         {
           headers: { Cookie: `token=${token}` },
@@ -73,7 +101,7 @@ class CartService {
   async releaseProductStock(productId, quantity, token) {
     try {
       await axios.patch(
-        `${this.productServiceUrl}/api/products/${productId}/stock`,
+        `${this.productServiceUrl}/${productId}/stock`, // Correct URL without /api/products
         { quantity: quantity }, // Positive to release
         {
           headers: { Cookie: `token=${token}` },

@@ -1,3 +1,4 @@
+// backend/services/admin-service/controllers/adminController.js
 const adminService = require("../services/adminService");
 
 // @desc    Login Admin
@@ -17,16 +18,26 @@ const login = async (req, res) => {
 
     const result = await adminService.login(email, password);
 
+    // Set HTTP-only cookie with the token
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
-      data: result,
+      data: {
+        admin: result.admin,
+      },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login controller error:", error);
     res.status(401).json({
       success: false,
-      message: error.message,
+      message: error.message || "Login failed",
     });
   }
 };
@@ -36,6 +47,13 @@ const login = async (req, res) => {
 // @access  Private
 const getProfile = async (req, res) => {
   try {
+    if (!req.admin || !req.admin._id) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized",
+      });
+    }
+
     const admin = await adminService.getProfile(req.admin._id);
 
     res.status(200).json({
@@ -43,10 +61,10 @@ const getProfile = async (req, res) => {
       data: admin,
     });
   } catch (error) {
-    console.error("Get profile error:", error);
+    console.error("Get profile controller error:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to fetch profile",
     });
   }
 };
@@ -63,10 +81,10 @@ const getDashboard = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Dashboard error:", error);
+    console.error("Dashboard controller error:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to fetch dashboard stats",
     });
   }
 };
@@ -77,14 +95,18 @@ const getDashboard = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
-    const users = await adminService.getAllUsers(page, limit, search);
+    const users = await adminService.getAllUsers(
+      parseInt(page),
+      parseInt(limit),
+      search
+    );
 
     res.status(200).json({
       success: true,
       data: users,
     });
   } catch (error) {
-    console.error("Get users error:", error);
+    console.error("Get users controller error:", error);
 
     if (error.message.includes("unavailable")) {
       return res.status(503).json({
@@ -95,7 +117,7 @@ const getUsers = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to fetch users",
+      message: error.message || "Failed to fetch users",
     });
   }
 };
@@ -107,8 +129,8 @@ const getProducts = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", category = "" } = req.query;
     const products = await adminService.getAllProducts(
-      page,
-      limit,
+      parseInt(page),
+      parseInt(limit),
       search,
       category
     );
@@ -118,7 +140,7 @@ const getProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get products error:", error);
+    console.error("Get products controller error:", error);
 
     if (error.message.includes("unavailable")) {
       return res.status(503).json({
@@ -129,7 +151,7 @@ const getProducts = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to fetch products",
+      message: error.message || "Failed to fetch products",
     });
   }
 };
@@ -140,14 +162,18 @@ const getProducts = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     const { page = 1, limit = 10, status = "" } = req.query;
-    const orders = await adminService.getAllOrders(page, limit, status);
+    const orders = await adminService.getAllOrders(
+      parseInt(page),
+      parseInt(limit),
+      status
+    );
 
     res.status(200).json({
       success: true,
       data: orders,
     });
   } catch (error) {
-    console.error("Get orders error:", error);
+    console.error("Get orders controller error:", error);
 
     if (error.message.includes("unavailable")) {
       return res.status(503).json({
@@ -158,7 +184,7 @@ const getOrders = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to fetch orders",
+      message: error.message || "Failed to fetch orders",
     });
   }
 };
@@ -202,7 +228,7 @@ const updateOrderStatus = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Update order status error:", error);
+    console.error("Update order status controller error:", error);
 
     if (error.message.includes("unavailable")) {
       return res.status(503).json({
@@ -213,7 +239,7 @@ const updateOrderStatus = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to update order status",
+      message: error.message || "Failed to update order status",
     });
   }
 };
@@ -250,7 +276,7 @@ const updateUserStatus = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Update user status error:", error);
+    console.error("Update user status controller error:", error);
 
     if (error.message.includes("unavailable")) {
       return res.status(503).json({
@@ -261,7 +287,7 @@ const updateUserStatus = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to update user status",
+      message: error.message || "Failed to update user status",
     });
   }
 };
@@ -271,15 +297,22 @@ const updateUserStatus = async (req, res) => {
 // @access  Private
 const logout = async (req, res) => {
   try {
+    // Clear the HTTP-only cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
     res.status(200).json({
       success: true,
       message: "Admin logged out successfully",
     });
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("Logout controller error:", error);
     res.status(500).json({
       success: false,
-      message: "Logout failed",
+      message: error.message || "Logout failed",
     });
   }
 };
