@@ -1,3 +1,4 @@
+// backend/services/Gateway/server.js (Updated)
 const express = require("express");
 const proxy = require("express-http-proxy");
 const dotenv = require("dotenv");
@@ -30,12 +31,10 @@ const corsOptions = {
       process.env.FRONTEND_URL || "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:5174",
-      // Add your production domain here
     ];
 
     console.log(`🌍 [CORS] Request from origin: ${origin}`);
 
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) {
       console.log(`✅ [CORS] No origin - allowing request`);
       return callback(null, true);
@@ -58,7 +57,7 @@ const corsOptions = {
     "X-Requested-With",
   ],
   exposedHeaders: ["Set-Cookie"],
-  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
@@ -112,13 +111,43 @@ const forwardAuth = {
   },
 };
 
-// Health check endpoint
-app.get("/health", (req, res) => {
+// Health check endpoint with service health checks
+app.get("/health", async (req, res) => {
   console.log(`💓 [GATEWAY] Health check requested`);
+
+  const services = [
+    { name: "User Service", url: "http://localhost:4000/health" },
+    { name: "Product Service", url: "http://localhost:4001/health" },
+    { name: "Cart Service", url: "http://localhost:4002/health" },
+    { name: "Order Service", url: "http://localhost:4003/health" },
+    { name: "Payment Service", url: "http://localhost:4004/health" },
+    { name: "Admin Service", url: "http://localhost:4006/health" },
+  ];
+
+  const serviceStatus = {};
+
+  for (const service of services) {
+    try {
+      const axios = require("axios");
+      const response = await axios.get(service.url, { timeout: 2000 });
+      serviceStatus[service.name] = {
+        status: "healthy",
+        rabbitmq: response.data.rabbitmq || "unknown",
+        mongodb: response.data.mongodb || "unknown",
+      };
+    } catch (error) {
+      serviceStatus[service.name] = {
+        status: "unhealthy",
+        error: error.message,
+      };
+    }
+  }
+
   res.status(200).json({
     service: "API Gateway",
     status: "healthy",
     timestamp: new Date().toISOString(),
+    services: serviceStatus,
   });
 });
 
@@ -275,4 +304,98 @@ app.listen(PORT, () => {
     `🌍 [GATEWAY] CORS enabled for:`,
     process.env.FRONTEND_URL || "http://localhost:5173"
   );
+  console.log(`🔗 [GATEWAY] Proxying to services:`);
+  console.log(`   - User Service: http://localhost:4000`);
+  console.log(`   - Product Service: http://localhost:4001`);
+  console.log(`   - Cart Service: http://localhost:4002`);
+  console.log(`   - Order Service: http://localhost:4003`);
+  console.log(`   - Payment Service: http://localhost:4004`);
+  console.log(`   - Admin Service: http://localhost:4006`);
 });
+
+// Package.json dependencies for each service
+// Add to each service's package.json:
+
+/*
+// shared/package.json (if you create a shared package)
+{
+  "name": "@ecostore/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for EcoStore microservices",
+  "main": "utils/rabbitmq.js",
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/user-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/admin-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/order-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/cart-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/product-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/payment-service/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+}
+
+// backend/services/Gateway/package.json (Add to existing dependencies)
+{
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
+*/
+
+// Environment Variables Template
+// Add these to each service's .env file:
+
+/*
+// .env template for all services
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_EXCHANGE=ecostore.events
+RABBITMQ_QUEUE_PREFIX=ecostore
+ENABLE_RABBITMQ=true
+RABBITMQ_RETRY_ATTEMPTS=3
+RABBITMQ_RETRY_DELAY=1000
+
+// Additional service-specific environment variables:
+// USER_SERVICE_URL=http://localhost:4000
+// PRODUCT_SERVICE_URL=http://localhost:4001
+// CART_SERVICE_URL=http://localhost:4002
+// ORDER_SERVICE_URL=http://localhost:4003
+// PAYMENT_SERVICE_URL=http://localhost:4004
+// ADMIN_SERVICE_URL=http://localhost:4006
+// FRONTEND_URL=http://localhost:5173
+*/

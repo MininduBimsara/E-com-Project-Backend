@@ -5,6 +5,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "amqplib": "^0.10.8",
     "axios": "^1.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
