@@ -3,22 +3,22 @@ const helmet = require("helmet");
 const validator = require("validator");
 
 // Rate limiting
-const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
-  return rateLimit({
-    windowMs,
-    max,
-    message: {
-      success: false,
-      message: "Too many requests from this IP, please try again later.",
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-};
+// const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
+//   return rateLimit({
+//     windowMs,
+//     max,
+//     message: {
+//       success: false,
+//       message: "Too many requests from this IP, please try again later.",
+//     },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//   });
+// };
 
 // Specific rate limiters
-const authLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 attempts per 15 minutes
-const generalLimiter = createRateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
+// const authLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 attempts per 15 minutes
+// const generalLimiter = createRateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
 
 // Input validation middleware
 const validateInput = (req, res, next) => {
@@ -151,9 +151,9 @@ const securityHeaders = helmet({
 });
 
 module.exports = {
-  createRateLimiter,
-  authLimiter,
-  generalLimiter,
+  // createRateLimiter,
+  // authLimiter,
+  // generalLimiter,
   validateInput,
   validateEmail,
   validatePassword,

@@ -1,12 +1,149 @@
 // backend/services/admin-service/controllers/adminController.js
 const adminService = require("../services/adminService");
 
+// @desc    Register Admin (internal use only)
+// @route   POST /api/admin/register
+// @access  Internal (called by User Service)
+const registerAdmin = async (req, res) => {
+  try {
+    console.log("📥 [adminController.registerAdmin] Received request:", {
+      body: { ...req.body, password: "[REDACTED]" },
+      headers: {
+        "content-type": req.headers["content-type"],
+        "user-agent": req.headers["user-agent"],
+      },
+    });
+
+    const { userId, username, email, password } = req.body;
+
+    // Enhanced validation
+    if (!userId || !email || !username || !password) {
+      console.log(
+        "❌ [adminController.registerAdmin] Missing required fields:",
+        {
+          userId: !!userId,
+          email: !!email,
+          username: !!username,
+          password: !!password,
+        }
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "userId, username, email, and password are required",
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log(
+        "❌ [adminController.registerAdmin] Invalid email format:",
+        email
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    console.log(
+      "🔍 [adminController.registerAdmin] Checking for existing admin..."
+    );
+
+    // Check duplicate
+    const existingAdmin = await adminService.findByEmail(email);
+    if (existingAdmin) {
+      console.log(
+        "⚠️ [adminController.registerAdmin] Admin already exists:",
+        email
+      );
+      return res.status(200).json({
+        success: true,
+        message: "Admin already exists",
+        admin: {
+          id: existingAdmin._id,
+          username: existingAdmin.username,
+          email: existingAdmin.email,
+          role: existingAdmin.role,
+          status: existingAdmin.status,
+        },
+      });
+    }
+
+    console.log("🔄 [adminController.registerAdmin] Creating new admin...");
+
+    const admin = await adminService.createAdmin({
+      userId,
+      username,
+      email,
+      password, // Plain password - will be hashed in the model
+      role: "admin",
+      status: "active",
+    });
+
+    console.log(
+      "✅ [adminController.registerAdmin] Admin created successfully:",
+      {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Admin registered successfully",
+      admin: {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+        status: admin.status,
+        createdAt: admin.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("💥 [adminController.registerAdmin] Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: { ...req.body, password: "[REDACTED]" },
+    });
+
+    // Handle specific error types
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        details: Object.values(error.errors).map((e) => e.message),
+      });
+    }
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || "field";
+      return res.status(400).json({
+        success: false,
+        message: `Admin with this ${field} already exists`,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to register admin",
+      ...(process.env.NODE_ENV === "development" && { stack: error.stack }),
+    });
+  }
+};
+
 // @desc    Login Admin
 // @route   POST /api/admin/login
 // @access  Public
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    console.log("🔐 [adminController.login] Login attempt for:", email);
 
     // Basic validation
     if (!email || !password) {
@@ -18,11 +155,17 @@ const login = async (req, res) => {
 
     const result = await adminService.login(email, password);
 
+    console.log("✅ [adminController.login] Login successful for:", {
+      adminId: result.admin.id,
+      username: result.admin.username,
+      role: result.admin.role,
+    });
+
     // Set HTTP-only cookie with the token
     res.cookie("token", result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -34,7 +177,10 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login controller error:", error);
+    console.error("❌ [adminController.login] Login failed:", {
+      email: req.body.email,
+      error: error.message,
+    });
     res.status(401).json({
       success: false,
       message: error.message || "Login failed",
@@ -301,7 +447,7 @@ const logout = async (req, res) => {
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     res.status(200).json({
@@ -318,6 +464,7 @@ const logout = async (req, res) => {
 };
 
 module.exports = {
+  registerAdmin,
   login,
   getProfile,
   getDashboard,

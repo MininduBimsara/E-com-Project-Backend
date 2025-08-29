@@ -8,29 +8,94 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
+// Create admin record with enhanced error handling
+const createAdmin = async (adminData) => {
+  try {
+    console.log("🔄 [adminService.createAdmin] Creating admin with data:", {
+      ...adminData,
+      password: "[REDACTED]",
+    });
+
+    // Check if admin already exists by email
+    const existingAdmin = await Admin.findOne({ email: adminData.email });
+    if (existingAdmin) {
+      console.log(
+        "⚠️ [adminService.createAdmin] Admin already exists:",
+        adminData.email
+      );
+      return existingAdmin;
+    }
+
+    // Create new admin
+    const admin = new Admin(adminData);
+    await admin.save();
+
+    console.log("✅ [adminService.createAdmin] Admin created successfully:", {
+      id: admin._id,
+      username: admin.username,
+      email: admin.email,
+      role: admin.role,
+    });
+
+    return admin;
+  } catch (error) {
+    console.error("💥 [adminService.createAdmin] Error creating admin:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      keyPattern: error.keyPattern,
+    });
+    throw error;
+  }
+};
+
+// Find admin by email
+const findByEmail = async (email) => {
+  try {
+    const admin = await Admin.findOne({ email });
+    console.log(
+      "🔍 [adminService.findByEmail] Search result for",
+      email,
+      ":",
+      !!admin
+    );
+    return admin;
+  } catch (error) {
+    console.error("❌ [adminService.findByEmail] Error:", error);
+    throw error;
+  }
+};
+
 // Login admin
 const login = async (email, password) => {
   try {
+    console.log("🔐 [adminService.login] Login attempt for:", email);
+
     // Find admin by email
     const admin = await Admin.findOne({ email });
 
     if (!admin) {
+      console.log("❌ [adminService.login] Admin not found:", email);
       throw new Error("Invalid credentials");
     }
 
     // Check if admin is active
     if (admin.status !== "active") {
+      console.log("❌ [adminService.login] Admin account inactive:", email);
       throw new Error("Admin account is inactive");
     }
 
     // Check password
     const isPasswordValid = await admin.comparePassword(password);
     if (!isPasswordValid) {
+      console.log("❌ [adminService.login] Invalid password for:", email);
       throw new Error("Invalid credentials");
     }
 
     // Update last login
     await admin.updateLastLogin();
+
+    console.log("✅ [adminService.login] Login successful for:", email);
 
     // Generate token
     const token = generateToken(admin._id);
@@ -48,7 +113,7 @@ const login = async (email, password) => {
       token,
     };
   } catch (error) {
-    console.error("Login service error:", error);
+    console.error("❌ [adminService.login] Login service error:", error);
     throw error;
   }
 };
@@ -79,7 +144,7 @@ const getProfile = async (adminId) => {
 // Helper function to make service calls with proper error handling
 const makeServiceCall = async (url, serviceName, timeout = 5000) => {
   try {
-    console.log(`🔍 Calling ${serviceName}: ${url}`);
+    console.log(`🔗 Calling ${serviceName}: ${url}`);
 
     const response = await axios.get(url, {
       timeout,
@@ -500,6 +565,8 @@ const updateUserStatus = async (userId, status) => {
 };
 
 module.exports = {
+  createAdmin,
+  findByEmail,
   login,
   getProfile,
   getDashboardStats,

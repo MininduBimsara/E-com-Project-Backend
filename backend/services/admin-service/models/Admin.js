@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const adminSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: [true, "User ID is required"],
+    unique: true,
+  },
   username: {
     type: String,
     required: [true, "Username is required"],
@@ -50,21 +55,39 @@ adminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   try {
+    console.log("🔐 [Admin.pre('save')] Hashing password for:", this.email);
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log("✅ [Admin.pre('save')] Password hashed successfully");
     next();
   } catch (error) {
+    console.error("❌ [Admin.pre('save')] Password hashing failed:", error);
     next(error);
   }
 });
 
 // Compare password method
 adminSchema.methods.comparePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  try {
+    console.log(
+      "🔍 [Admin.comparePassword] Comparing password for:",
+      this.email
+    );
+    const isMatch = await bcrypt.compare(password, this.password);
+    console.log("🔍 [Admin.comparePassword] Password match:", isMatch);
+    return isMatch;
+  } catch (error) {
+    console.error("❌ [Admin.comparePassword] Error:", error);
+    return false;
+  }
 };
 
 // Update last login
 adminSchema.methods.updateLastLogin = function () {
+  console.log(
+    "📅 [Admin.updateLastLogin] Updating last login for:",
+    this.email
+  );
   this.lastLoginAt = new Date();
   return this.save();
 };
@@ -75,5 +98,10 @@ adminSchema.methods.toJSON = function () {
   delete adminObject.password;
   return adminObject;
 };
+
+// Add index for better performance
+adminSchema.index({ email: 1 });
+adminSchema.index({ userId: 1 });
+adminSchema.index({ username: 1 });
 
 module.exports = mongoose.model("Admin", adminSchema);
