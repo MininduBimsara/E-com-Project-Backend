@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  cart-service:
+    build: .
+    container_name: cart-service
+    ports:
+      - "4002:4002"
+    environment:
+      - NODE_ENV=development
+      - PORT=4002
+      - MONGO_URI=mongodb://mongodb:27017/cart-service
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - FRONTEND_URL=http://localhost:5173
+      - PRODUCT_SERVICE_URL=http://localhost:4001
+      - MAX_ITEMS_PER_CART=50
+      - MAX_QUANTITY_PER_ITEM=100
+      - DEFAULT_CURRENCY=USD
+      - ENABLE_RABBITMQ=true
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: cart-mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: cart-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+
+volumes:
+  mongodb_data:
+  rabbitmq_data:
+
+networks:
+  app-network:
+    driver: bridge

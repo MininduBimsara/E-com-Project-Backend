@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  admin-service:
+    build: .
+    container_name: admin-service
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=development
+      - PORT=4006
+      - MONGODB_URI=mongodb://mongodb:27017/admin_service
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - FRONTEND_URL=http://localhost:5173
+      - USER_SERVICE_URL=http://localhost:4000
+      - PRODUCT_SERVICE_URL=http://localhost:4001
+      - CART_SERVICE_URL=http://localhost:4002
+      - ORDER_SERVICE_URL=http://localhost:4003
+      - PAYMENT_SERVICE_URL=http://localhost:4004
+    depends_on:
+      - mongodb
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: admin-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
