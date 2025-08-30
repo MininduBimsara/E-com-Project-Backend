@@ -7,10 +7,11 @@ const cookieParser = require("cookie-parser");
 dotenv.config();
 
 const cartRoutes = require("./routes/cartRoutes");
+const { rabbitmqManager } = require("../../shared/utils/rabbitmq");
+const { cartEventConsumer } = require("./events/cartEventConsumer");
 
 const app = express();
 
-// CORS configuration
 const corsOptions = {
   origin: process.env.FRONTEND_URL || "http://localhost:5173",
   credentials: true,
@@ -24,18 +25,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Health check endpoint
+app.use("/", cartRoutes);
+
 app.get("/health", (req, res) => {
+  const rabbitmqHealth = rabbitmqManager.isHealthy();
   res.status(200).json({
     service: "Cart Service",
     status: "healthy",
     timestamp: new Date().toISOString(),
+    mongodb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    rabbitmq: rabbitmqHealth ? "connected" : "disconnected",
   });
 });
 
-app.use("/", cartRoutes);
-
-// Global error handler
 app.use((err, req, res, next) => {
   console.error("Cart service error:", err);
   res.status(500).json({
@@ -44,13 +47,62 @@ app.use((err, req, res, next) => {
   });
 });
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connected to MongoDB");
-    app.listen(4002, () => console.log("Cart Service running on port 4002"));
-  })
-  .catch((err) => console.error("MongoDB connection failed:", err));
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ MongoDB connected successfully");
+
+    if (process.env.ENABLE_RABBITMQ !== "false") {
+      try {
+        await rabbitmqManager.connect();
+        console.log("✅ [Cart Service] RabbitMQ connected successfully");
+
+        await cartEventConsumer.initialize();
+        console.log("✅ [Cart Service] Event consumers initialized");
+      } catch (error) {
+        console.error(
+          "❌ [Cart Service] RabbitMQ setup failed:",
+          error.message
+        );
+        console.log("⚠️ [Cart Service] Continuing without RabbitMQ...");
+      }
+    }
+
+    const PORT = process.env.PORT || 4002;
+    app.listen(PORT, () => {
+      console.log(`🚀 Cart Service running on port ${PORT}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log(
+        `🐰 RabbitMQ: ${
+          rabbitmqManager.isHealthy() ? "Connected" : "Disconnected"
+        }`
+      );
+    });
+  } catch (err) {
+    console.error("❌ MongoDB connection failed:", err);
+    process.exit(1);
+  }
+};
+
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully");
+  await rabbitmqManager.close();
+  mongoose.connection.close(() => {
+    console.log("MongoDB connection closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully");
+  await rabbitmqManager.close();
+  mongoose.connection.close(() => {
+    console.log("MongoDB connection closed");
+    process.exit(0);
+  });
+});
+
+startServer();

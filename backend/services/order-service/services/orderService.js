@@ -85,17 +85,28 @@ class OrderService {
     try {
       const headers = {};
       if (token) {
-        // ✅ Fix: Pass token as Cookie header instead of Bearer
         headers.Cookie = `token=${token}`;
       }
 
       const response = await axios.post(
         `${this.cartServiceUrl}/${userId}/validate`,
         {},
-        { headers }
+        {
+          headers,
+          timeout: 10000,
+        }
       );
-      return response.data.data || response.data;
+
+      const validationData = response.data.data || response.data;
+
+      // Return consistent format
+      return {
+        valid: validationData.valid !== false, // Default to true if not specified
+        issues: validationData.invalidItems || validationData.issues || [],
+        message: validationData.message || "Cart validation completed",
+      };
     } catch (error) {
+      console.error("Cart validation failed:", error.message);
       throw new Error(`Cart validation failed: ${error.message}`);
     }
   }
