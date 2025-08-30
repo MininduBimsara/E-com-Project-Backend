@@ -1,0 +1,219 @@
+# docker-compose.prod.yml
+version: '3.8'
+
+networks:
+  ecostore-network:
+    driver: bridge
+
+volumes:
+  mongo-user-data:
+  mongo-product-data:
+  mongo-cart-data:
+  mongo-order-data:
+  mongo-payment-data:
+  mongo-admin-data:
+  product-images:
+
+services:
+  # Databases
+  mongo-user:
+    image: mongo:6.0
+    container_name: ecostore-mongo-user
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-user-data:/data/db
+    networks:
+      - ecostore-network
+
+  mongo-product:
+    image: mongo:6.0
+    container_name: ecostore-mongo-product
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-product-data:/data/db
+    networks:
+      - ecostore-network
+
+  mongo-cart:
+    image: mongo:6.0
+    container_name: ecostore-mongo-cart
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-cart-data:/data/db
+    networks:
+      - ecostore-network
+
+  mongo-order:
+    image: mongo:6.0
+    container_name: ecostore-mongo-order
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-order-data:/data/db
+    networks:
+      - ecostore-network
+
+  mongo-payment:
+    image: mongo:6.0
+    container_name: ecostore-mongo-payment
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-payment-data:/data/db
+    networks:
+      - ecostore-network
+
+  mongo-admin:
+    image: mongo:6.0
+    container_name: ecostore-mongo-admin
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-admin-data:/data/db
+    networks:
+      - ecostore-network
+
+  # Services
+  user-service:
+    image: ${DOCKER_USERNAME}/ecostore-user-service:${VERSION:-latest}
+    container_name: ecostore-user-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-user:27017/user-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ADMIN_SERVICE_URL: http://admin-service:4006
+    depends_on:
+      - mongo-user
+    networks:
+      - ecostore-network
+
+  product-service:
+    image: ${DOCKER_USERNAME}/ecostore-product-service:${VERSION:-latest}
+    container_name: ecostore-product-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-product:27017/product-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+    volumes:
+      - product-images:/app/public/product-images
+    depends_on:
+      - mongo-product
+    networks:
+      - ecostore-network
+
+  cart-service:
+    image: ${DOCKER_USERNAME}/ecostore-cart-service:${VERSION:-latest}
+    container_name: ecostore-cart-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-cart:27017/cart-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      PRODUCT_SERVICE_URL: http://product-service:4001
+    depends_on:
+      - mongo-cart
+      - product-service
+    networks:
+      - ecostore-network
+
+  order-service:
+    image: ${DOCKER_USERNAME}/ecostore-order-service:${VERSION:-latest}
+    container_name: ecostore-order-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-order:27017/order-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CART_SERVICE_URL: http://cart-service:4002
+      PRODUCT_SERVICE_URL: http://product-service:4001
+    depends_on:
+      - mongo-order
+      - cart-service
+    networks:
+      - ecostore-network
+
+  payment-service:
+    image: ${DOCKER_USERNAME}/ecostore-payment-service:${VERSION:-latest}
+    container_name: ecostore-payment-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4004
+      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-payment:27017/payment-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ORDER_SERVICE_URL: http://order-service:4003
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET}
+      PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+    depends_on:
+      - mongo-payment
+      - order-service
+    networks:
+      - ecostore-network
+
+  admin-service:
+    image: ${DOCKER_USERNAME}/ecostore-admin-service:${VERSION:-latest}
+    container_name: ecostore-admin-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4006
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-admin:27017/admin-service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      USER_SERVICE_URL: http://user-service:4000
+      PRODUCT_SERVICE_URL: http://product-service:4001
+      CART_SERVICE_URL: http://cart-service:4002
+      ORDER_SERVICE_URL: http://order-service:4003
+      PAYMENT_SERVICE_URL: http://payment-service:4004
+    depends_on:
+      - mongo-admin
+    networks:
+      - ecostore-network
+
+  gateway:
+    image: ${DOCKER_USERNAME}/ecostore-gateway:${VERSION:-latest}
+    container_name: ecostore-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      FRONTEND_URL: ${FRONTEND_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - admin-service
+    networks:
+      - ecostore-network
