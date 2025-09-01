@@ -1,6 +1,4 @@
-# docker-compose.prod.yml
-version: '3.8'
-
+# docker-compose.yml - Simplified without health checks
 networks:
   ecostore-network:
     driver: bridge
@@ -22,7 +20,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-user-data:/data/db
     networks:
@@ -34,7 +32,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-product-data:/data/db
     networks:
@@ -46,7 +44,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-cart-data:/data/db
     networks:
@@ -58,7 +56,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-order-data:/data/db
     networks:
@@ -70,7 +68,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-payment-data:/data/db
     networks:
@@ -82,39 +80,38 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD: password123
     volumes:
       - mongo-admin-data:/data/db
     networks:
       - ecostore-network
 
-  # Services
+  # Services (without health checks)
   user-service:
-    image: ${DOCKER_USERNAME}/ecostore-user-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-user-service:latest
     container_name: ecostore-user-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-user:27017/user-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
-      ADMIN_SERVICE_URL: http://admin-service:4006
+      MONGO_URI: mongodb://admin:password123@mongo-user:27017/user-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
     depends_on:
       - mongo-user
     networks:
       - ecostore-network
 
   product-service:
-    image: ${DOCKER_USERNAME}/ecostore-product-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-product-service:latest
     container_name: ecostore-product-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4001
-      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-product:27017/product-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
+      MONGO_URI: mongodb://admin:password123@mongo-product:27017/product-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
     volumes:
       - product-images:/app/public/product-images
     depends_on:
@@ -123,15 +120,15 @@ services:
       - ecostore-network
 
   cart-service:
-    image: ${DOCKER_USERNAME}/ecostore-cart-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-cart-service:latest
     container_name: ecostore-cart-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4002
-      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-cart:27017/cart-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
+      MONGO_URI: mongodb://admin:password123@mongo-cart:27017/cart-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
       PRODUCT_SERVICE_URL: http://product-service:4001
     depends_on:
       - mongo-cart
@@ -140,15 +137,15 @@ services:
       - ecostore-network
 
   order-service:
-    image: ${DOCKER_USERNAME}/ecostore-order-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-order-service:latest
     container_name: ecostore-order-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4003
-      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-order:27017/order-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
+      MONGO_URI: mongodb://admin:password123@mongo-order:27017/order-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
       CART_SERVICE_URL: http://cart-service:4002
       PRODUCT_SERVICE_URL: http://product-service:4001
     depends_on:
@@ -158,19 +155,19 @@ services:
       - ecostore-network
 
   payment-service:
-    image: ${DOCKER_USERNAME}/ecostore-payment-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-payment-service:latest
     container_name: ecostore-payment-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4004
-      MONGO_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-payment:27017/payment-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
+      MONGO_URI: mongodb://admin:password123@mongo-payment:27017/payment-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
       ORDER_SERVICE_URL: http://order-service:4003
-      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
-      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET}
-      PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+      PAYPAL_CLIENT_ID: AbKsB1xZlpjfyHvTsYZ2E8cqyeI4CqNgTOtfnPMLyyACFcF3FDNgQOb68AtL0C8hrAKJFQRGBGrKWjxm
+      PAYPAL_CLIENT_SECRET: EG5M0mcfJ4d_LqmVXY5BhE8ZUGLUjNDvlzFRIZ-ZZ_7xr_RS3ki-LmrhY55rb3eAEMEE31Un0jrqGTLg
+      PAYPAL_MODE: sandbox
     depends_on:
       - mongo-payment
       - order-service
@@ -178,15 +175,15 @@ services:
       - ecostore-network
 
   admin-service:
-    image: ${DOCKER_USERNAME}/ecostore-admin-service:${VERSION:-latest}
+    image: minindu20021116/ecostore-admin-service:latest
     container_name: ecostore-admin-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4006
-      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD}@mongo-admin:27017/admin-service?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
+      MONGO_URI: mongodb://admin:password123@mongo-admin:27017/admin-service?authSource=admin
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      FRONTEND_URL: http://localhost:5173
       USER_SERVICE_URL: http://user-service:4000
       PRODUCT_SERVICE_URL: http://product-service:4001
       CART_SERVICE_URL: http://cart-service:4002
@@ -198,14 +195,20 @@ services:
       - ecostore-network
 
   gateway:
-    image: ${DOCKER_USERNAME}/ecostore-gateway:${VERSION:-latest}
+    image: minindu20021116/ecostore-gateway:latest
     container_name: ecostore-gateway
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 5000
-      FRONTEND_URL: ${FRONTEND_URL}
-      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost:5173
+      JWT_SECRET: YouAreMySunshineMyOnlySunshineYouMakeMeHappy
+      USER_SERVICE_URL: http://user-service:4000
+      PRODUCT_SERVICE_URL: http://product-service:4001
+      CART_SERVICE_URL: http://cart-service:4002
+      ORDER_SERVICE_URL: http://order-service:4003
+      PAYMENT_SERVICE_URL: http://payment-service:4004
+      ADMIN_SERVICE_URL: http://admin-service:4006
     ports:
       - "5000:5000"
     depends_on:
