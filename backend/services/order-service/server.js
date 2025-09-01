@@ -7,8 +7,42 @@ const cookieParser = require("cookie-parser");
 dotenv.config();
 
 const orderRoutes = require("./routes/orderRoutes");
-const { rabbitmqManager } = require("../../shared/utils/rabbitmq");
-const { orderEventConsumer } = require("./events/orderEventConsumer");
+
+// Smart RabbitMQ import that works in both local and Docker environments
+let rabbitmqManager = null;
+let orderEventConsumer = null;
+
+// Function to safely import RabbitMQ modules
+function loadRabbitMQModules() {
+  const possiblePaths = [
+    "./shared/utils/rabbitmq", // Docker container path
+    "../../shared/utils/rabbitmq", // Local development path
+  ];
+
+  for (const modulePath of possiblePaths) {
+    try {
+      const { rabbitmqManager: rmqManager } = require(modulePath);
+      const {
+        orderEventConsumer: eventConsumer,
+      } = require("./events/orderEventConsumer");
+
+      console.log(`✅ Found RabbitMQ module at: ${modulePath}`);
+      return { rabbitmqManager: rmqManager, orderEventConsumer: eventConsumer };
+    } catch (err) {
+      console.log(`❌ Failed to load from ${modulePath}: ${err.message}`);
+      continue;
+    }
+  }
+
+  console.log("⚠️ RabbitMQ module not found, continuing without it...");
+  return { rabbitmqManager: null, orderEventConsumer: null };
+}
+
+// Load RabbitMQ modules
+const { rabbitmqManager: rmqManager, orderEventConsumer: eventConsumer } =
+  loadRabbitMQModules();
+rabbitmqManager = rmqManager;
+orderEventConsumer = eventConsumer;
 
 const app = express();
 
@@ -28,7 +62,7 @@ app.use(cookieParser());
 app.use("/", orderRoutes);
 
 app.get("/health", (req, res) => {
-  const rabbitmqHealth = rabbitmqManager.isHealthy();
+  const rabbitmqHealth = rabbitmqManager ? rabbitmqManager.isHealthy() : false;
   res.status(200).json({
     service: "Order Service",
     status: "healthy",
@@ -56,13 +90,15 @@ const startServer = async () => {
     console.log("✅ MongoDB connected successfully");
 
     // Initialize RabbitMQ connection
-    if (process.env.ENABLE_RABBITMQ !== "false") {
+    if (process.env.ENABLE_RABBITMQ !== "false" && rabbitmqManager) {
       try {
         await rabbitmqManager.connect();
         console.log("✅ [Order Service] RabbitMQ connected successfully");
 
-        await orderEventConsumer.initialize();
-        console.log("✅ [Order Service] Event consumers initialized");
+        if (orderEventConsumer) {
+          await orderEventConsumer.initialize();
+          console.log("✅ [Order Service] Event consumers initialized");
+        }
       } catch (error) {
         console.error(
           "❌ [Order Service] RabbitMQ setup failed:",
@@ -70,6 +106,8 @@ const startServer = async () => {
         );
         console.log("⚠️ [Order Service] Continuing without RabbitMQ...");
       }
+    } else {
+      console.log("⚠️ [Order Service] RabbitMQ disabled or not available");
     }
 
     const PORT = process.env.PORT || 4003;
@@ -78,7 +116,9 @@ const startServer = async () => {
       console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(
         `🐰 RabbitMQ: ${
-          rabbitmqManager.isHealthy() ? "Connected" : "Disconnected"
+          rabbitmqManager && rabbitmqManager.isHealthy()
+            ? "Connected"
+            : "Disconnected"
         }`
       );
     });
@@ -90,7 +130,9 @@ const startServer = async () => {
 
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully");
-  await rabbitmqManager.close();
+  if (rabbitmqManager) {
+    await rabbitmqManager.close();
+  }
   mongoose.connection.close(() => {
     console.log("MongoDB connection closed");
     process.exit(0);
@@ -99,7 +141,9 @@ process.on("SIGTERM", async () => {
 
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully");
-  await rabbitmqManager.close();
+  if (rabbitmqManager) {
+    await rabbitmqManager.close();
+  }
   mongoose.connection.close(() => {
     console.log("MongoDB connection closed");
     process.exit(0);

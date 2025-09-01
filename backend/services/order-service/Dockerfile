@@ -4,32 +4,27 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Copy shared utilities first (from backend context)
+COPY shared/ ./shared/
+
 # Copy package files
-COPY package*.json ./
+COPY services/order-service/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
-
-# Copy shared utilities
-COPY --chown=node:node ../../shared ./shared
+RUN npm install --production
 
 # Copy application code
-COPY . .
+COPY services/order-service/ .
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S orderservice -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S orderservice -u 1001 && \
+    chown -R orderservice:nodejs /app
 
-# Change ownership of the app directory
-RUN chown -R orderservice:nodejs /app
 USER orderservice
 
 # Expose port
 EXPOSE 4003
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node healthcheck.js
 
 # Start the application
 CMD ["npm", "start"]
