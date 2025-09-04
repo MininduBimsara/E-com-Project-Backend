@@ -1,4 +1,3 @@
-// backend/services/cart-service/events/cartEventConsumer.js
 const {
   rabbitmqManager,
   EVENT_TYPES,
@@ -12,7 +11,11 @@ class CartEventConsumer {
 
   async initialize() {
     try {
-      const routingKeys = [EVENT_TYPES.ORDER_CREATED];
+      // CRITICAL FIX: Listen to PAYMENT_SUCCESS instead of ORDER_CREATED
+      const routingKeys = [
+        EVENT_TYPES.PAYMENT_SUCCESS, // ✅ Wait for payment success
+        // EVENT_TYPES.ORDER_CREATED,  // ❌ Remove this - don't clear on order creation
+      ];
 
       await rabbitmqManager.setupConsumer(
         this.serviceName,
@@ -48,8 +51,8 @@ class CartEventConsumer {
       });
 
       switch (routingKey) {
-        case EVENT_TYPES.ORDER_CREATED:
-          await this.handleOrderCreated(message.data);
+        case EVENT_TYPES.PAYMENT_SUCCESS:
+          await this.handlePaymentSuccess(message.data);
           break;
         default:
           console.warn(
@@ -65,50 +68,59 @@ class CartEventConsumer {
     }
   }
 
-  async handleOrderCreated(orderData) {
+  // RENAMED: Clear cart only after payment success
+  async handlePaymentSuccess(paymentData) {
     try {
-      console.log(`🛒 [CartEventConsumer] Processing order created event:`, {
-        orderId: orderData.orderId,
-        userId: orderData.userId,
-        itemCount: orderData.items?.length || 0,
+      console.log(`💳 [CartEventConsumer] Processing payment success event:`, {
+        orderId: paymentData.orderId,
+        userId: paymentData.userId,
+        paymentId: paymentData.paymentId,
+        amount: paymentData.amount,
       });
 
       // Find and clear the user's cart
-      const cart = await cartRepository.findCartByUserId(orderData.userId);
+      const cart = await cartRepository.findCartByUserId(paymentData.userId);
 
       if (!cart) {
         console.log(
-          `ℹ️ [CartEventConsumer] No cart found for user: ${orderData.userId}`
+          `ℹ️ [CartEventConsumer] No cart found for user: ${paymentData.userId}`
         );
         return;
       }
 
       if (cart.items.length === 0) {
         console.log(
-          `ℹ️ [CartEventConsumer] Cart already empty for user: ${orderData.userId}`
+          `ℹ️ [CartEventConsumer] Cart already empty for user: ${paymentData.userId}`
         );
         return;
       }
 
-      // Clear the cart
+      // Store item count before clearing
+      const itemCount = cart.items.length;
+
+      // Clear the cart after successful payment
       cart.clearCart();
       await cartRepository.saveCart(cart);
 
       console.log(
-        `✅ [CartEventConsumer] Cart cleared successfully for user: ${orderData.userId}`,
+        `✅ [CartEventConsumer] Cart cleared after successful payment for user: ${paymentData.userId}`,
         {
-          orderId: orderData.orderId,
-          previousItemCount: cart.items.length,
+          orderId: paymentData.orderId,
+          paymentId: paymentData.paymentId,
+          clearedItemCount: itemCount,
         }
       );
 
-      // Optionally publish cart cleared event for analytics
+      // Publish cart cleared event
       try {
         await rabbitmqManager.publishEvent(
           EVENT_TYPES.CART_CLEARED,
           {
-            userId: orderData.userId,
-            orderId: orderData.orderId,
+            userId: paymentData.userId,
+            orderId: paymentData.orderId,
+            paymentId: paymentData.paymentId,
+            reason: "payment_successful",
+            clearedItemCount: itemCount,
             clearedAt: new Date().toISOString(),
           },
           {
@@ -121,16 +133,18 @@ class CartEventConsumer {
           `⚠️ [CartEventConsumer] Failed to publish cart cleared event:`,
           error.message
         );
-        // Don't throw - cart clearing succeeded
       }
     } catch (error) {
       console.error(
-        `❌ [CartEventConsumer] Failed to handle order created event:`,
+        `❌ [CartEventConsumer] Failed to handle payment success event:`,
         error.message
       );
       throw error;
     }
   }
+
+  // REMOVE the handleOrderCreated method entirely
+  // async handleOrderCreated(orderData) { ... } ← DELETE THIS METHOD
 }
 
 const cartEventConsumer = new CartEventConsumer();
