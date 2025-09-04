@@ -298,14 +298,154 @@ class RabbitMQManager {
   }
 }
 
-// Event type constants
+// UPDATED: Comprehensive Event Types for E-commerce
 const EVENT_TYPES = {
-  USER_CREATED: "user.created",
+  // Order Events
   ORDER_CREATED: "order.created",
+  ORDER_UPDATED: "order.updated",
+  ORDER_CANCELLED: "order.cancelled",
+  ORDER_PAID: "order.paid", // NEW: When order payment is confirmed
+  ORDER_CONFIRMED: "order.confirmed", // NEW: When order is confirmed after payment
+  ORDER_SHIPPED: "order.shipped",
+  ORDER_DELIVERED: "order.delivered",
+
+  // Payment Events
+  PAYMENT_INITIATED: "payment.initiated", // NEW: When payment process starts
   PAYMENT_SUCCESS: "payment.success",
   PAYMENT_FAILED: "payment.failed",
+  PAYMENT_REFUNDED: "payment.refunded", // NEW: When payment is refunded
+  PAYMENT_CANCELLED: "payment.cancelled", // NEW: When payment is cancelled
+
+  // Cart Events
+  CART_UPDATED: "cart.updated",
   CART_CLEARED: "cart.cleared",
+  CART_RESTORED: "cart.restored", // NEW: For restoring cart after payment failure
+  CART_ABANDONED: "cart.abandoned", // NEW: When cart is abandoned
+  CART_ITEM_ADDED: "cart.item.added", // NEW: When item is added to cart
+  CART_ITEM_REMOVED: "cart.item.removed", // NEW: When item is removed from cart
+
+  // Product Events
+  PRODUCT_CREATED: "product.created",
+  PRODUCT_UPDATED: "product.updated",
+  PRODUCT_DELETED: "product.deleted",
   STOCK_UPDATED: "stock.updated",
+  STOCK_LOW: "stock.low", // NEW: When stock is below threshold
+  STOCK_OUT: "stock.out", // NEW: When stock is zero
+  STOCK_RESERVED: "stock.reserved", // NEW: When stock is reserved for order
+  STOCK_RELEASED: "stock.released", // NEW: When reserved stock is released
+
+  // User Events
+  USER_CREATED: "user.created",
+  USER_REGISTERED: "user.registered", // NEW: Alias for user.created
+  USER_UPDATED: "user.updated",
+  USER_DELETED: "user.deleted",
+  USER_LOGIN: "user.login", // NEW: User login event
+  USER_LOGOUT: "user.logout", // NEW: User logout event
+
+  // Notification Events
+  NOTIFICATION_SENT: "notification.sent", // NEW: When notification is sent
+  EMAIL_SENT: "email.sent", // NEW: When email is sent
+  SMS_SENT: "sms.sent", // NEW: When SMS is sent
+
+  // Analytics Events
+  PAGE_VIEW: "analytics.page.view", // NEW: Page view tracking
+  PRODUCT_VIEW: "analytics.product.view", // NEW: Product view tracking
+  SEARCH_PERFORMED: "analytics.search", // NEW: Search tracking
+
+  // System Events
+  SYSTEM_HEALTH: "system.health", // NEW: System health check
+  SERVICE_STARTED: "service.started", // NEW: When service starts
+  SERVICE_STOPPED: "service.stopped", // NEW: When service stops
+  ERROR_OCCURRED: "error.occurred", // NEW: When error occurs
+};
+
+// UPDATED: Event Flow Documentation for better understanding
+const EVENT_FLOWS = {
+  // Complete Order-to-Payment-to-Cart Flow (FIXED)
+  COMPLETE_ORDER_FLOW: [
+    "cart.item.added", // User adds items to cart
+    "order.created", // User creates order (cart stays intact)
+    "payment.initiated", // Payment process starts
+    "payment.success", // Payment confirmed
+    "order.confirmed", // Order status updated to confirmed
+    "stock.updated", // Product stock reduced
+    "cart.cleared", // Cart cleared after successful payment
+    "notification.sent", // Confirmation notification sent
+  ],
+
+  // Failed Payment Flow
+  FAILED_PAYMENT_FLOW: [
+    "order.created", // Order created, cart preserved
+    "payment.initiated", // Payment attempted
+    "payment.failed", // Payment failed, cart remains for retry
+    "notification.sent", // Payment failure notification
+    "order.cancelled", // Optional: cancel order after multiple failures
+  ],
+
+  // Order Cancellation Flow
+  ORDER_CANCELLATION_FLOW: [
+    "order.cancelled", // User or system cancels order
+    "stock.released", // Release reserved stock
+    "payment.refunded", // Refund payment if already paid
+    "cart.restored", // Optional: restore cart items
+    "notification.sent", // Cancellation notification
+  ],
+
+  // Stock Management Flow
+  STOCK_MANAGEMENT_FLOW: [
+    "order.created", // Order created
+    "stock.reserved", // Stock reserved for order
+    "payment.success", // Payment successful
+    "stock.updated", // Stock permanently reduced
+    "stock.low", // Optional: if stock below threshold
+  ],
+
+  // Cart Abandonment Flow
+  CART_ABANDONMENT_FLOW: [
+    "cart.item.added", // Items added to cart
+    "cart.abandoned", // Cart not converted to order
+    "notification.sent", // Abandonment recovery email
+  ],
+};
+
+// Service Event Mappings (which events each service should listen to)
+const SERVICE_EVENT_MAPPINGS = {
+  "cart-service": [
+    EVENT_TYPES.PAYMENT_SUCCESS, // Clear cart after payment
+    EVENT_TYPES.ORDER_CANCELLED, // Handle order cancellation
+    EVENT_TYPES.PAYMENT_FAILED, // Optional: handle payment failures
+  ],
+
+  "order-service": [
+    EVENT_TYPES.PAYMENT_SUCCESS, // Update order status after payment
+    EVENT_TYPES.PAYMENT_FAILED, // Handle payment failures
+  ],
+
+  "payment-service": [
+    EVENT_TYPES.ORDER_CREATED, // Process payment for new orders
+  ],
+
+  "product-service": [
+    EVENT_TYPES.ORDER_CREATED, // Update stock when order created
+    EVENT_TYPES.ORDER_CANCELLED, // Release stock when order cancelled
+    EVENT_TYPES.PAYMENT_FAILED, // Release stock on payment failure
+  ],
+
+  "notification-service": [
+    EVENT_TYPES.ORDER_CREATED, // Send order confirmation
+    EVENT_TYPES.PAYMENT_SUCCESS, // Send payment confirmation
+    EVENT_TYPES.PAYMENT_FAILED, // Send payment failure notification
+    EVENT_TYPES.ORDER_SHIPPED, // Send shipping notification
+    EVENT_TYPES.CART_ABANDONED, // Send abandonment recovery
+  ],
+
+  "analytics-service": [
+    EVENT_TYPES.ORDER_CREATED, // Track order metrics
+    EVENT_TYPES.PAYMENT_SUCCESS, // Track payment metrics
+    EVENT_TYPES.PRODUCT_VIEW, // Track product views
+    EVENT_TYPES.CART_ITEM_ADDED, // Track cart additions
+    EVENT_TYPES.SEARCH_PERFORMED, // Track search metrics
+  ],
 };
 
 // Create singleton instance
@@ -314,5 +454,7 @@ const rabbitmqManager = new RabbitMQManager();
 module.exports = {
   rabbitmqManager,
   EVENT_TYPES,
+  EVENT_FLOWS,
+  SERVICE_EVENT_MAPPINGS,
   RabbitMQManager,
 };

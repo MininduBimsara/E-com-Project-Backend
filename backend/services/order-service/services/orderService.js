@@ -1,13 +1,8 @@
-// ==============================================
-// services/orderService.js - Updated with Payment Integration
-// ==============================================
-
+// backend/services/order-service/services/orderService.js - Updated Flow
 const axios = require("axios");
 const orderRepository = require("../repositories/orderRepository");
+const { orderEventPublisher } = require("../events/orderEventPublisher");
 
-/**
- * Order Service - Business logic for order operations
- */
 class OrderService {
   constructor() {
     this.cartServiceUrl =
@@ -23,11 +18,12 @@ class OrderService {
     try {
       const headers = {};
       if (token) {
-        headers.Authorization = `Bearer ${token}`;
+        headers.Cookie = `token=${token}`;
       }
 
       const response = await axios.get(`${this.cartServiceUrl}/${userId}`, {
         headers,
+        timeout: 10000,
       });
       return response.data.data || response.data;
     } catch (error) {
@@ -39,48 +35,34 @@ class OrderService {
   }
 
   /**
-   * Clear cart after successful order
+   * CHANGED: Do NOT clear cart immediately after order creation
+   * Cart will be cleared only after successful payment via events
    */
-  async clearCart(userId, token) {
+  async clearCartAfterPayment(userId, token) {
     try {
       const headers = {};
       if (token) {
-        headers.Authorization = `Bearer ${token}`;
+        headers.Cookie = `token=${token}`;
       }
 
       await axios.delete(`${this.cartServiceUrl}/${userId}/clear`, {
         headers,
+        timeout: 10000,
       });
+
+      console.log(`✅ Cart cleared after payment for user: ${userId}`);
     } catch (error) {
-      console.warn(`Failed to clear cart for user ${userId}:`, error.message);
+      console.warn(
+        `⚠️ Failed to clear cart for user ${userId}:`,
+        error.message
+      );
+      // This is now handled by events, so this method might be deprecated
     }
   }
 
   /**
-   * Get product details from product service
+   * Validate cart before creating order
    */
-  async getProductDetails(productId, token) {
-    try {
-      const headers = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await axios.get(
-        `${this.productServiceUrl}/details/${productId}`,
-        { headers }
-      );
-      return response.data;
-    } catch (error) {
-      console.warn(
-        `Failed to fetch product details for ${productId}:`,
-        error.message
-      );
-      return null;
-    }
-  }
-
-  // ✅ FIXED VERSION OF validateCartForOrder METHOD
   async validateCartForOrder(userId, token) {
     try {
       const headers = {};
@@ -99,9 +81,8 @@ class OrderService {
 
       const validationData = response.data.data || response.data;
 
-      // Return consistent format
       return {
-        valid: validationData.valid !== false, // Default to true if not specified
+        valid: validationData.valid !== false,
         issues: validationData.invalidItems || validationData.issues || [],
         message: validationData.message || "Cart validation completed",
       };
@@ -112,10 +93,10 @@ class OrderService {
   }
 
   /**
-   * Create a new order
+   * Create a new order (CHANGED: Don't clear cart here)
    */
   async createOrder(orderData, userId, token) {
-    const { shippingAddress, paymentId } = orderData;
+    const { shippingAddress, paymentMethod } = orderData;
 
     if (!userId || !shippingAddress) {
       throw new Error("User ID and shipping address are required");
@@ -147,21 +128,14 @@ class OrderService {
       throw new Error("Cart is empty");
     }
 
-    // Prepare order items with product details
-    const orderItems = [];
-    for (const cartItem of cart.items) {
-      const productDetails =
-        cartItem.product ||
-        (await this.getProductDetails(cartItem.productId, token));
-
-      orderItems.push({
-        productId: cartItem.productId,
-        quantity: cartItem.quantity,
-        priceAtOrder: cartItem.priceAtAdd,
-        productName: productDetails?.name || `Product ${cartItem.productId}`,
-        productImageUrl: productDetails?.imageUrl || null,
-      });
-    }
+    // Prepare order items
+    const orderItems = cart.items.map((cartItem) => ({
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      priceAtOrder: cartItem.priceAtAdd,
+      productName: cartItem.product?.name || `Product ${cartItem.productId}`,
+      productImageUrl: cartItem.product?.imageUrl || null,
+    }));
 
     // Generate order number
     const orderNumber = require("../models/Order").generateOrderNumber();
@@ -176,71 +150,78 @@ class OrderService {
       total: (cart.subtotal || 0) + (cart.shipping || 0),
       currency: cart.currency || "USD",
       shippingAddress,
-      paymentId: paymentId || null,
-      paymentStatus: paymentId ? "paid" : "pending",
+      paymentMethod: paymentMethod || "pending",
+      paymentStatus: "pending", // Always start as pending
+      status: "pending", // Order status starts as pending
     };
 
     // Create order
     const order = await orderRepository.createOrder(newOrderData);
 
-    // Clear cart after successful order creation
-    await this.clearCart(userId, token);
+ try {
+   const { orderEventPublisher } = require("../events/orderEventPublisher");
+   await orderEventPublisher.publishOrderCreated(order);
+   console.log(`📤 Order created event published: ${order.orderNumber}`);
+ } catch (error) {
+   console.warn("Failed to publish order created event:", error.message);
+ }
+
+    console.log(`✅ Order created successfully: ${order.orderNumber}`, {
+      orderId: order._id,
+      userId,
+      total: order.total,
+      itemCount: orderItems.length,
+      cartStatus: "preserved_for_payment",
+    });
 
     return order;
   }
 
   /**
-   * Get order by ID
+   * Update order payment status (called when payment is confirmed)
    */
-  async getOrderById(orderId, userId) {
+  async confirmOrderPayment(orderId, paymentData, userId = null) {
     const order = await orderRepository.findOrderById(orderId);
 
     if (!order) {
       throw new Error("Order not found");
     }
 
-    if (order.userId !== userId) {
-      throw new Error("Access denied");
+    if (userId && order.userId !== userId) {
+      throw new Error("Not authorized to update this order");
     }
 
-    return order;
-  }
+    const { paymentStatus, paymentId, paymentMethod, transactionId } =
+      paymentData;
 
-  /**
-   * Get order by order number
-   */
-  async getOrderByNumber(orderNumber, userId) {
-    const order = await orderRepository.findOrderByNumber(orderNumber);
-
-    if (!order) {
-      throw new Error("Order not found");
-    }
-
-    if (order.userId !== userId) {
-      throw new Error("Access denied");
-    }
-
-    return order;
-  }
-
-  /**
-   * Get user's orders
-   */
-  async getUserOrders(userId, options = {}) {
-    const queryOptions = {
-      status: options.status,
-      limit: parseInt(options.limit) || 50,
-      skip: parseInt(options.skip) || 0,
-      sort: { createdAt: -1 },
+    const updateData = {
+      paymentStatus: paymentStatus || "paid",
+      status: "confirmed", // Update order status to confirmed
+      paymentId: paymentId,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
+      paymentCompletedAt: new Date(),
     };
 
-    return await orderRepository.findOrdersByUserId(userId, queryOptions);
+    const updatedOrder = await orderRepository.updateOrderById(
+      orderId,
+      updateData
+    );
+
+    console.log(`🎉 Order payment confirmed: ${order.orderNumber}`, {
+      orderId,
+      paymentId,
+      transactionId,
+      userId: userId || "system",
+    });
+
+    return updatedOrder;
   }
 
   /**
-   * Cancel order (only pending or confirmed orders)
+   * Cancel order and optionally restore cart
    */
-  async cancelOrder(orderId, userId) {
+  async cancelOrder(orderId, userId, reason = "user_cancelled") {
     const order = await orderRepository.findOrderById(orderId);
 
     if (!order) {
@@ -255,152 +236,84 @@ class OrderService {
       throw new Error("Order cannot be cancelled in current status");
     }
 
-    return await orderRepository.updateOrderById(orderId, {
+    // Update order status
+    const cancelledOrder = await orderRepository.updateOrderById(orderId, {
       status: "cancelled",
+      cancelledAt: new Date(),
+      cancellationReason: reason,
     });
+
+    // Publish order cancelled event
+    try {
+      await rabbitmqManager.publishEvent(
+        EVENT_TYPES.ORDER_CANCELLED,
+        {
+          orderId: orderId,
+          userId: userId,
+          reason: reason,
+          cancelledAt: new Date().toISOString(),
+          orderItems: order.items,
+        },
+        {
+          source: "order-service",
+          version: "1.0",
+        }
+      );
+    } catch (error) {
+      console.warn("Failed to publish order cancelled event:", error.message);
+    }
+
+    return cancelledOrder;
   }
 
-  // ===============================
-  // NEW PAYMENT INTEGRATION METHODS
-  // ===============================
-
-  /**
-   * Get order for payment processing (called by Payment Service)
-   * @param {String} orderId - Order ID
-   * @param {String} userId - User ID (optional for service calls)
-   */
-  async getOrderForPayment(orderId, userId = null) {
+  // ... rest of the methods remain the same
+  async getOrderById(orderId, userId) {
     const order = await orderRepository.findOrderById(orderId);
-
     if (!order) {
       throw new Error("Order not found");
     }
-
-    // Verify ownership if userId provided
-    if (userId && order.userId !== userId) {
-      throw new Error("Not authorized to access this order");
+    if (order.userId !== userId) {
+      throw new Error("Access denied");
     }
-
     return order;
   }
 
-  /**
-   * Update order payment status (called by Payment Service)
-   * @param {String} orderId - Order ID
-   * @param {Object} paymentData - Payment information
-   * @param {String} userId - User ID (optional for service calls)
-   */
-  async updatePaymentStatus(orderId, paymentData, userId = null) {
-    const order = await orderRepository.findOrderById(orderId);
-
+  async getOrderByNumber(orderNumber, userId) {
+    const order = await orderRepository.findOrderByNumber(orderNumber);
     if (!order) {
       throw new Error("Order not found");
     }
-
-    // Verify ownership if userId provided
-    if (userId && order.userId !== userId) {
-      throw new Error("Not authorized to update this order");
+    if (order.userId !== userId) {
+      throw new Error("Access denied");
     }
-
-    const { paymentStatus, status, paymentId, paymentMethod } = paymentData;
-
-    const updateData = {
-      paymentStatus: paymentStatus,
-      paymentId: paymentId,
-      paymentMethod: paymentMethod,
-    };
-
-    // Update main status if provided
-    if (status) {
-      updateData.status = status;
-    }
-
-    // Add payment completion timestamp
-    if (paymentStatus === "paid") {
-      updateData.paymentCompletedAt = new Date();
-    }
-
-    const updatedOrder = await orderRepository.updateOrderById(
-      orderId,
-      updateData
-    );
-
-    // Log the payment confirmation
-    console.log(`Order ${orderId} payment status updated:`, {
-      paymentStatus,
-      paymentId,
-      paymentMethod,
-      userId: userId || "system",
-    });
-
-    return updatedOrder;
+    return order;
   }
 
-  /**
-   * Get order with payment details
-   * @param {String} orderId - Order ID
-   */
-  async getOrderWithPaymentDetails(orderId) {
-    return await orderRepository.findOrderById(orderId);
-  }
-
-  /**
-   * Update order status (for admin operations)
-   * @param {String} orderId - Order ID
-   * @param {String} status - New status
-   * @param {String} adminUserId - Admin user ID
-   */
-  async updateOrderStatus(orderId, status, adminUserId) {
-    const order = await orderRepository.findOrderById(orderId);
-
-    if (!order) {
-      throw new Error("Order not found");
-    }
-
-    const validStatuses = [
-      "pending",
-      "confirmed",
-      "processing",
-      "shipped",
-      "delivered",
-      "cancelled",
-    ];
-
-    if (!validStatuses.includes(status)) {
-      throw new Error("Invalid order status");
-    }
-
-    const updatedOrder = await orderRepository.updateOrderById(orderId, {
-      status: status,
-      updatedBy: adminUserId,
-    });
-
-    console.log(
-      `Order ${orderId} status updated to ${status} by admin ${adminUserId}`
-    );
-
-    return updatedOrder;
-  }
-
-  /**
-   * Get orders by payment status (for admin)
-   * @param {String} paymentStatus - Payment status
-   * @param {Object} options - Query options
-   */
-  async getOrdersByPaymentStatus(paymentStatus, options = {}) {
+  async getUserOrders(userId, options = {}) {
     const queryOptions = {
-      filter: { paymentStatus },
+      status: options.status,
       limit: parseInt(options.limit) || 50,
       skip: parseInt(options.skip) || 0,
       sort: { createdAt: -1 },
     };
-
-    return await orderRepository.findOrdersWithFilter(queryOptions);
+    return await orderRepository.findOrdersByUserId(userId, queryOptions);
   }
 
-  /**
-   * Get order statistics
-   */
+  async getOrderForPayment(orderId, userId = null) {
+    const order = await orderRepository.findOrderById(orderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+    if (userId && order.userId !== userId) {
+      throw new Error("Not authorized to access this order");
+    }
+    return order;
+  }
+
+  async updatePaymentStatus(orderId, paymentData, userId = null) {
+    return await this.confirmOrderPayment(orderId, paymentData, userId);
+  }
+
   async getOrderStatistics() {
     return await orderRepository.getOrderStatistics();
   }

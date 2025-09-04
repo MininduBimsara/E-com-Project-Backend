@@ -1,6 +1,7 @@
 // services/paymentService.js - Fixed to work with existing Order service
 const Payment = require("../models/Payment");
 const axios = require("axios");
+const { paymentEventPublisher } = require("../events/paymentEventPublisher");
 
 // PayPal Configuration
 const getPayPalConfig = () => ({
@@ -302,13 +303,12 @@ const capturePayPalPayment = async (
     `💳 Capturing PayPal payment: order=${orderId}, paypal=${paypalOrderId}, user=${userId}`
   );
 
+  // Get order details
   const order = await getOrderFromOrderService(orderId, userId, authToken);
-
   if (!order) {
     throw new Error("Order not found");
   }
 
-  // Check authorization - handle different order object structures
   const orderUserId = order.userId || order.user_id || order.customer_id;
   if (orderUserId && orderUserId !== userId) {
     throw new Error("Not authorized to access this order");
@@ -320,7 +320,7 @@ const capturePayPalPayment = async (
   console.log(`📤 Capturing PayPal payment: ${paypalOrderId}`);
 
   try {
-    // Capture payment
+    // Capture payment with PayPal
     const response = await axios({
       method: "post",
       url: `${config.PAYPAL_API_BASE}/v2/checkout/orders/${paypalOrderId}/capture`,
@@ -366,6 +366,7 @@ const capturePayPalPayment = async (
         paypal_order_id: paypalOrderId,
         paypal_payer_id: response.data.payer?.payer_id || "unknown",
         provider: "PayPal",
+        captured_at: new Date().toISOString(),
       },
     });
 
@@ -376,24 +377,52 @@ const capturePayPalPayment = async (
       status: payment.payment_status,
     });
 
-    // Update order status using existing endpoints
-    await updateOrderStatus(
-      orderId,
-      {
-        paymentStatus: "paid",
-        status: "confirmed",
-        paymentId: transactionId,
-        paymentMethod: "paypal",
-      },
-      userId,
-      authToken
+    // CHANGED: Publish PAYMENT_SUCCESS event instead of updating order directly
+    // This will trigger:
+    // 1. Order Service to update order status
+    // 2. Cart Service to clear the cart
+    const paymentSuccessData = {
+      paymentId: transactionId,
+      orderId: orderId,
+      userId: userId,
+      amount: order.total,
+      currency: order.currency || "USD",
+      transactionId: transactionId,
+      paymentMethod: "paypal",
+      orderItems: order.items || [],
+      orderNumber: order.orderNumber,
+      processedAt: new Date().toISOString(),
+    };
+
+    // Publish payment success event
+    const correlationId = await paymentEventPublisher.publishPaymentSuccess(
+      paymentSuccessData
     );
 
     console.log(
-      `🎉 Payment capture completed successfully for order: ${orderId}`
+      `🎉 Payment capture completed successfully for order: ${orderId}`,
+      {
+        transactionId,
+        correlationId,
+        eventPublished: "PAYMENT_SUCCESS",
+      }
     );
 
-    return { payment, order };
+    return {
+      payment: {
+        ...payment.toObject(),
+        transaction_id: transactionId,
+        amount: payment.amount,
+        currency: payment.currency,
+        payment_method: payment.payment_method,
+        payment_status: payment.payment_status,
+      },
+      order: {
+        ...order,
+        paymentConfirmed: true,
+        paymentId: transactionId,
+      },
+    };
   } catch (error) {
     console.error(`❌ PayPal payment capture failed:`, {
       paypalOrderId: paypalOrderId,
@@ -401,6 +430,22 @@ const capturePayPalPayment = async (
       data: error.response?.data,
       message: error.message,
     });
+
+    // CHANGED: Publish payment failure event
+    const paymentFailureData = {
+      orderId: orderId,
+      userId: userId,
+      amount: order.total,
+      paymentMethod: "paypal",
+      errorReason:
+        error.response?.data?.details?.[0]?.description || error.message,
+      errorCode: "PAYPAL_CAPTURE_FAILED",
+      orderItems: order.items || [],
+      failedAt: new Date().toISOString(),
+    };
+
+    await paymentEventPublisher.publishPaymentFailed(paymentFailureData);
+
     throw new Error(
       `Payment capture failed: ${
         error.response?.data?.details?.[0]?.description || error.message
@@ -408,6 +453,7 @@ const capturePayPalPayment = async (
     );
   }
 };
+
 
 // Get Payment History
 const getPaymentHistory = async (userId) => {
