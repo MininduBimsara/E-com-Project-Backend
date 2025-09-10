@@ -1,8 +1,42 @@
 // backend/services/payment-service/events/paymentEventPublisher.js
-const {
-  rabbitmqManager,
-  EVENT_TYPES,
-} = require("../../../shared/utils/rabbitmq");
+
+// Smart RabbitMQ import that works in both local and Docker environments
+let rabbitmqManager = null;
+let EVENT_TYPES = null;
+
+function loadRabbitMQModules() {
+  const possiblePaths = [
+    "../shared/utils/rabbitmq", // Docker container path
+    "../../../shared/utils/rabbitmq", // Local development path
+  ];
+
+  for (const modulePath of possiblePaths) {
+    try {
+      const {
+        rabbitmqManager: rmqManager,
+        EVENT_TYPES: eventTypes,
+      } = require(modulePath);
+      console.log(
+        `✅ Found RabbitMQ module at: ${modulePath} (PaymentEventPublisher)`
+      );
+      return { rabbitmqManager: rmqManager, EVENT_TYPES: eventTypes };
+    } catch (err) {
+      console.log(`❌ Failed to load from ${modulePath}: ${err.message}`);
+      continue;
+    }
+  }
+
+  console.log(
+    "⚠️ RabbitMQ module not found in PaymentEventPublisher, continuing without it..."
+  );
+  return { rabbitmqManager: null, EVENT_TYPES: {} };
+}
+
+// Load RabbitMQ modules
+const { rabbitmqManager: rmqManager, EVENT_TYPES: eventTypes } =
+  loadRabbitMQModules();
+rabbitmqManager = rmqManager;
+EVENT_TYPES = eventTypes || {};
 
 class PaymentEventPublisher {
   constructor() {
@@ -10,6 +44,13 @@ class PaymentEventPublisher {
   }
 
   async publishPaymentSuccess(paymentData) {
+    if (!rabbitmqManager) {
+      console.log(
+        "⚠️ [PaymentEventPublisher] RabbitMQ not available, cannot publish payment success event"
+      );
+      return null;
+    }
+
     try {
       const eventData = {
         paymentId: paymentData.paymentId || paymentData.transactionId,
@@ -58,6 +99,13 @@ class PaymentEventPublisher {
   }
 
   async publishPaymentFailed(paymentData) {
+    if (!rabbitmqManager) {
+      console.log(
+        "⚠️ [PaymentEventPublisher] RabbitMQ not available, cannot publish payment failed event"
+      );
+      return null;
+    }
+
     try {
       const eventData = {
         orderId: paymentData.orderId,
@@ -104,6 +152,13 @@ class PaymentEventPublisher {
 
   // NEW: Publish order paid event (alternative approach)
   async publishOrderPaid(orderData, paymentData) {
+    if (!rabbitmqManager) {
+      console.log(
+        "⚠️ [PaymentEventPublisher] RabbitMQ not available, cannot publish order paid event"
+      );
+      return null;
+    }
+
     try {
       const eventData = {
         orderId: orderData.orderId,

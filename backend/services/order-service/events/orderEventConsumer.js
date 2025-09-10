@@ -1,8 +1,43 @@
 // backend/services/order-service/events/orderEventConsumer.js
-const {
-  rabbitmqManager,
-  EVENT_TYPES,
-} = require("../../../shared/utils/rabbitmq");
+
+// Smart RabbitMQ import that works in both local and Docker environments
+let rabbitmqManager = null;
+let EVENT_TYPES = null;
+
+function loadRabbitMQModules() {
+  const possiblePaths = [
+    "../shared/utils/rabbitmq", // Docker container path
+    "../../../shared/utils/rabbitmq", // Local development path
+  ];
+
+  for (const modulePath of possiblePaths) {
+    try {
+      const {
+        rabbitmqManager: rmqManager,
+        EVENT_TYPES: eventTypes,
+      } = require(modulePath);
+      console.log(
+        `✅ Found RabbitMQ module at: ${modulePath} (OrderEventConsumer)`
+      );
+      return { rabbitmqManager: rmqManager, EVENT_TYPES: eventTypes };
+    } catch (err) {
+      console.log(`❌ Failed to load from ${modulePath}: ${err.message}`);
+      continue;
+    }
+  }
+
+  console.log(
+    "⚠️ RabbitMQ module not found in OrderEventConsumer, continuing without it..."
+  );
+  return { rabbitmqManager: null, EVENT_TYPES: {} };
+}
+
+// Load RabbitMQ modules
+const { rabbitmqManager: rmqManager, EVENT_TYPES: eventTypes } =
+  loadRabbitMQModules();
+rabbitmqManager = rmqManager;
+EVENT_TYPES = eventTypes || {};
+
 const orderRepository = require("../repositories/orderRepository");
 
 class OrderEventConsumer {
@@ -11,6 +46,13 @@ class OrderEventConsumer {
   }
 
   async initialize() {
+    if (!rabbitmqManager) {
+      console.log(
+        "⚠️ [OrderEventConsumer] RabbitMQ not available, skipping initialization"
+      );
+      return;
+    }
+
     try {
       const routingKeys = [
         EVENT_TYPES.PAYMENT_SUCCESS,
@@ -44,8 +86,15 @@ class OrderEventConsumer {
   }
 
   async handleMessage(message, routingKey) {
+    if (!rabbitmqManager) {
+      console.log(
+        "⚠️ [OrderEventConsumer] RabbitMQ not available, cannot handle message"
+      );
+      return;
+    }
+
     try {
-      console.log(`📥 [OrderEventConsumer] Processing event: ${routingKey}`, {
+      console.log(`🔥 [OrderEventConsumer] Processing event: ${routingKey}`, {
         correlationId: message.metadata?.correlationId,
         source: message.metadata?.source,
       });
