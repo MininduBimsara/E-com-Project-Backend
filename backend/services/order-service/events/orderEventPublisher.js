@@ -6,8 +6,9 @@ let EVENT_TYPES = null;
 
 function loadRabbitMQModules() {
   const possiblePaths = [
+    "../../../shared/utils/rabbitmq",
     "../shared/utils/rabbitmq", // Docker container path
-    "../../../shared/utils/rabbitmq", // Local development path
+    "../shared/utils/rabbitmq", // Local development path
   ];
 
   for (const modulePath of possiblePaths) {
